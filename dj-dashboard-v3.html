@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DJ Business Dashboard</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #fff;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        .container { max-width: 1400px; margin: 0 auto; }
+        h1 { font-size: 2.5rem; margin-bottom: 10px; text-shadow: 2px 2px 4px rgba(0,0,0,0.3); }
+        .subtitle { font-size: 1.1rem; opacity: 0.9; margin-bottom: 30px; }
+        .loading { text-align: center; padding: 40px; font-size: 1.2rem; }
+        .loading-spinner {
+            display: inline-block; width: 50px; height: 50px;
+            border: 5px solid rgba(255,255,255,0.3);
+            border-radius: 50%; border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite; margin-bottom: 20px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px; margin-bottom: 30px;
+        }
+        .metric-card {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(10px); border-radius: 15px; padding: 25px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+        .metric-label { font-size: 0.9rem; opacity: 0.8; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px; }
+        .metric-value { font-size: 2.5rem; font-weight: 700; line-height: 1; }
+        .metric-subtext { font-size: 0.85rem; opacity: 0.7; margin-top: 8px; }
+        .charts-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(500px, 1fr)); gap: 20px; margin-bottom: 30px; }
+        .chart-card { background: rgba(255, 255, 255, 0.95); border-radius: 15px; padding: 25px; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1); }
+        .chart-title { color: #333; font-size: 1.3rem; margin-bottom: 20px; font-weight: 600; }
+        .payment-list { background: rgba(255, 255, 255, 0.95); border-radius: 15px; padding: 25px; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1); }
+        .payment-item { display: flex; justify-content: space-between; align-items: center; padding: 15px; margin-bottom: 10px; background: #f8f9fa; border-radius: 8px; color: #333; }
+        .payment-info { flex: 1; }
+        .payment-client { font-weight: 600; margin-bottom: 4px; }
+        .payment-date { font-size: 0.9rem; color: #666; }
+        .payment-amount { font-size: 1.3rem; font-weight: 700; color: #667eea; }
+        .year-table { width: 100%; border-collapse: collapse; color: #333; }
+        .year-table th { text-align: left; padding: 12px; background: #f8f9fa; font-weight: 600; border-bottom: 2px solid #dee2e6; }
+        .year-table td { padding: 12px; border-bottom: 1px solid #dee2e6; }
+        .year-row { cursor: pointer; transition: background 0.2s; }
+        .year-row:hover { background: #e9ecef; }
+        .month-details { display: none; }
+        .month-details.expanded { display: table-row; }
+        .month-details td { padding: 0; background: #f8f9fa; }
+        .expand-icon { display: inline-block; margin-right: 8px; transition: transform 0.2s; font-size: 0.8rem; }
+        .expand-icon.expanded { transform: rotate(90deg); }
+        .error { background: rgba(255, 0, 0, 0.3); padding: 20px; border-radius: 10px; margin: 20px 0; text-align: center; }
+        #dashboard { display: none; }
+        .refresh-btn {
+            position: fixed; bottom: 30px; right: 30px;
+            background: rgba(255, 255, 255, 0.9); color: #667eea;
+            border: none; padding: 15px 25px; border-radius: 50px;
+            font-size: 1rem; font-weight: 600; cursor: pointer;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3); transition: all 0.3s ease;
+        }
+        .refresh-btn:hover { background: #fff; transform: scale(1.05); }
+        @media (max-width: 768px) {
+            .charts-grid { grid-template-columns: 1fr; }
+            h1 { font-size: 2rem; }
+            .metric-value { font-size: 2rem; }
+            .refresh-btn { bottom: 20px; right: 20px; padding: 12px 20px; font-size: 0.9rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎵 DJ Business Dashboard</h1>
+        <p class="subtitle">Real-time insights into your wedding DJ business</p>
+        
+        <div id="loading" class="loading">
+            <div class="loading-spinner"></div>
+            <div>Loading your data...</div>
+        </div>
+        <div id="error" class="error" style="display: none;"></div>
+        
+        <div id="dashboard">
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <div class="metric-label">Outstanding Balance</div>
+                    <div class="metric-value" id="totalOutstanding">$0</div>
+                    <div class="metric-subtext">Total remaining this year</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">Due This Month</div>
+                    <div class="metric-value" id="dueThisMonth">$0</div>
+                    <div class="metric-subtext">Weddings in December 2025</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">Revenue YTD</div>
+                    <div class="metric-value" id="revenueYTD">$0</div>
+                    <div class="metric-subtext">Total collected in 2025</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">This Month</div>
+                    <div class="metric-value" id="revenueThisMonth">$0</div>
+                    <div class="metric-subtext">Collected in December</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">2026+ Avg Booking</div>
+                    <div class="metric-value" id="avg2026">$0</div>
+                    <div class="metric-subtext">Average deal size</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">2026+ Bookings</div>
+                    <div class="metric-value" id="total2026">0</div>
+                    <div class="metric-subtext">Future Weddings</div>
+                </div>
+            </div>
+            
+            <div class="charts-grid">
+                <div class="chart-card">
+                    <h3 class="chart-title">Monthly Revenue Breakdown</h3>
+                    <canvas id="monthlyChart"></canvas>
+                </div>
+                <div class="chart-card">
+                    <h3 class="chart-title">Package Revenue Distribution</h3>
+                    <canvas id="packageChart"></canvas>
+                </div>
+            </div>
+            
+            <div class="charts-grid">
+                <div class="chart-card">
+                    <h3 class="chart-title">2026 Cash Flow Projection</h3>
+                    <canvas id="cashflowChart"></canvas>
+                </div>
+                <div class="chart-card">
+                    <h3 class="chart-title">Revenue by Venue</h3>
+                    <canvas id="venueChart"></canvas>
+                </div>
+            </div>
+            
+            <div class="payment-list">
+                <h3 class="chart-title">Next Payments Due</h3>
+                <div id="upcomingPayments"></div>
+            </div>
+            
+            <div class="payment-list" style="margin-top: 20px;">
+                <h3 class="chart-title">Performance by Year</h3>
+                <div id="yearBreakdown"></div>
+            </div>
+            
+            <button class="refresh-btn" onclick="loadData()">🔄 Refresh Data</button>
+        </div>
+    </div>
+
+    <script>
+        var API_URL = 'https://script.google.com/macros/s/AKfycbwfywITzxf_sI5afFn9QTuzmi8V0ilhswJEhIUxTw4bbllSPDUNwRI7R-bE2cFnQSKZqg/exec';
+        var clientsData = [], paymentsData = [], historicalData = [];
+        var monthlyChart, packageChart, cashflowChart, venueChart;
+
+        function parseAmount(amt) { if(!amt) return 0; return parseFloat(amt.toString().replace(/[$,]/g,''))||0; }
+        function parseDate(d) { if(!d) return null; try { return new Date(d); } catch(e) { return null; } }
+        function formatCurrency(amt) { return new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',minimumFractionDigits:0,maximumFractionDigits:0}).format(amt); }
+
+        function loadData() {
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('dashboard').style.display = 'none';
+            document.getElementById('error').style.display = 'none';
+            Promise.all([
+                fetch(API_URL+'?sheet=Clients'),
+                fetch(API_URL+'?sheet=Payments'),
+                fetch(API_URL+'?sheet=Historical')
+            ]).then(function(r) { return Promise.all([r[0].json(),r[1].json(),r[2].json()]); })
+            .then(function(d) {
+                clientsData=d[0]; paymentsData=d[1]; historicalData=d[2];
+                if(clientsData.length===0||paymentsData.length===0) throw new Error('No data');
+                showDashboard();
+            }).catch(function(e) { showError('Error: '+e.message); });
+        }
+
+        function showError(m) {
+            document.getElementById('loading').style.display='none';
+            document.getElementById('error').style.display='block';
+            document.getElementById('error').textContent=m;
+        }
+
+        function showDashboard() {
+            document.getElementById('loading').style.display='none';
+            document.getElementById('dashboard').style.display='block';
+            calculateMetrics(); renderCharts(); renderUpcomingPayments(); renderYearBreakdown();
+        }
+
+        function calculateMetrics() {
+    var now=new Date(), yr=now.getFullYear(), curMon=now.getMonth(), out=0, due=0, ytd=0, mon=0, r26=0, c26=0;
+    var monthNames=['January','February','March','April','May','June','July','August','September','October','November','December'];
+    
+    clientsData.forEach(function(c) {
+        var b=parseAmount(c.BalanceDue), t=parseAmount(c.TotalAmount), w=parseDate(c['Wedding Date']);
+        if(w) {
+            if(w>=now||w.getFullYear()===2026) out+=b;
+            if(w.getFullYear()===yr&&w.getMonth()===curMon) due+=b;
+            if(w.getFullYear()===2026&&t>0) { r26+=t; c26++; }
+        }
+    });
+    paymentsData.forEach(function(p) {
+        var a=parseAmount(p['Amount Paid']), d=parseDate(p['Date Paid']);
+        if(d&&d.getFullYear()===yr) { ytd+=a; if(d.getMonth()===curMon) mon+=a; }
+    });
+    
+    document.getElementById('totalOutstanding').textContent=formatCurrency(out);
+    document.getElementById('dueThisMonth').textContent=formatCurrency(due);
+    document.getElementById('revenueYTD').textContent=formatCurrency(ytd);
+    document.getElementById('revenueThisMonth').textContent=formatCurrency(mon);
+    document.getElementById('avg2026').textContent=formatCurrency(c26>0?r26/c26:0);
+    document.getElementById('total2026').textContent=c26;
+    
+    document.querySelector('.metric-card:nth-child(2) .metric-subtext').textContent='Weddings in '+monthNames[curMon]+' '+yr;
+    document.querySelector('.metric-card:nth-child(3) .metric-subtext').textContent='Total collected in '+yr;
+    document.querySelector('.metric-card:nth-child(4) .metric-subtext').textContent='Collected in '+monthNames[curMon];
+}
+
+        function renderCharts() { renderMonthlyChart(); renderPackageChart(); renderCashflowChart(); renderVenueChart(); }
+
+function renderMonthlyChart() {
+    var md={}, ms=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    var now=new Date(), currentYear=now.getFullYear(), nextYear=currentYear+1;
+    ms.forEach(function(m){md[m]={collected:0,expected:0};});
+    paymentsData.forEach(function(p){
+        var a=parseAmount(p['Amount Paid']),d=parseDate(p['Date Paid']);
+        if(d&&d.getFullYear()===currentYear) md[ms[d.getMonth()]].collected+=a;
+    });
+    clientsData.forEach(function(c){
+        var t=parseAmount(c.TotalAmount),w=parseDate(c['Wedding Date']);
+        if(w&&w.getFullYear()===nextYear&&md[ms[w.getMonth()]]) md[ms[w.getMonth()]].expected+=t;
+    });
+    var ctx=document.getElementById('monthlyChart').getContext('2d');
+    if(monthlyChart) monthlyChart.destroy();
+    monthlyChart=new Chart(ctx,{type:'bar',data:{labels:ms,datasets:[
+        {label:'Collected ('+currentYear+')',data:ms.map(function(m){return md[m].collected;}),backgroundColor:'rgba(102,126,234,0.8)',borderColor:'rgba(102,126,234,1)',borderWidth:1},
+        {label:'Expected ('+nextYear+' Weddings)',data:ms.map(function(m){return md[m].expected;}),backgroundColor:'rgba(118,75,162,0.5)',borderColor:'rgba(118,75,162,1)',borderWidth:1}
+            ]},options:{responsive:true,maintainAspectRatio:true,plugins:{legend:{display:true,position:'bottom'}},scales:{y:{beginAtZero:true,ticks:{callback:function(v){return '$'+v.toLocaleString();}}}}}});
+        }
+
+        function renderPackageChart() {
+            var pr={};
+            clientsData.forEach(function(c){
+                var p=c['Package Choice']||'Unknown',t=parseAmount(c.TotalAmount);
+                if(!pr[p])pr[p]=0; pr[p]+=t;
+            });
+            var l=Object.keys(pr), d=Object.values(pr);
+            var ctx=document.getElementById('packageChart').getContext('2d');
+            if(packageChart) packageChart.destroy();
+            packageChart=new Chart(ctx,{type:'doughnut',data:{labels:l,datasets:[{data:d,backgroundColor:['rgba(102,126,234,0.8)','rgba(118,75,162,0.8)','rgba(246,79,89,0.8)','rgba(66,184,131,0.8)','rgba(255,159,64,0.8)'],borderWidth:2,borderColor:'#fff'}]},options:{responsive:true,maintainAspectRatio:true,plugins:{legend:{display:true,position:'bottom'},tooltip:{callbacks:{label:function(c){return c.label+': '+formatCurrency(c.parsed);}}}}}});
+        }
+
+        function renderCashflowChart() {
+            var md={}, ms=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+            ms.forEach(function(m){md[m]={paid:0,outstanding:0};});
+            clientsData.forEach(function(c){
+                var w=parseDate(c['Wedding Date']);
+                if(w&&w.getFullYear()===2026) {
+                    var m=ms[w.getMonth()], a=parseAmount(c.AmountPaid), b=parseAmount(c.BalanceDue);
+                    md[m].paid+=a; md[m].outstanding+=b;
+                }
+            });
+            var ctx=document.getElementById('cashflowChart').getContext('2d');
+            if(cashflowChart) cashflowChart.destroy();
+            cashflowChart=new Chart(ctx,{type:'bar',data:{labels:ms,datasets:[
+                {label:'Already Paid',data:ms.map(function(m){return md[m].paid;}),backgroundColor:'rgba(66,184,131,0.8)',borderColor:'rgba(66,184,131,1)',borderWidth:1},
+                {label:'Outstanding',data:ms.map(function(m){return md[m].outstanding;}),backgroundColor:'rgba(246,79,89,0.6)',borderColor:'rgba(246,79,89,1)',borderWidth:1}
+            ]},options:{responsive:true,maintainAspectRatio:true,plugins:{legend:{display:true,position:'bottom'}},scales:{x:{stacked:true},y:{stacked:true,beginAtZero:true,ticks:{callback:function(v){return '$'+v.toLocaleString();}}}}}});
+        }
+
+        function renderVenueChart() {
+            var vr={};
+            clientsData.forEach(function(c){
+                var v=(c.Location||'').toString().trim(), t=parseAmount(c.TotalAmount);
+                if(v&&v!==''&&t>0) { if(!vr[v])vr[v]=0; vr[v]+=t; }
+            });
+            historicalData.forEach(function(e){
+                var v=(e.Location||'').toString().trim(), a=parseAmount(e.Amount);
+                if(v&&v!==''&&a>0) { if(!vr[v])vr[v]=0; vr[v]+=a; }
+            });
+            var sv=Object.entries(vr).filter(function(x){return x[1]>0;}).sort(function(a,b){return b[1]-a[1];});
+            if(sv.length===0) { document.getElementById('venueChart').parentElement.innerHTML='<h3 class="chart-title">Revenue by Venue</h3><p style="color:#666;text-align:center;padding:40px;">No venue data</p>'; return; }
+            var l=sv.map(function(v){return v[0];}), d=sv.map(function(v){return v[1];});
+            var ctx=document.getElementById('venueChart').getContext('2d');
+            if(venueChart) venueChart.destroy();
+            venueChart=new Chart(ctx,{type:'bar',data:{labels:l,datasets:[{label:'Total Revenue',data:d,backgroundColor:'rgba(102,126,234,0.8)',borderColor:'rgba(102,126,234,1)',borderWidth:1}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:true,plugins:{legend:{display:false},tooltip:{callbacks:{label:function(c){return 'Revenue: '+formatCurrency(c.parsed.x);}}}},scales:{x:{beginAtZero:true,ticks:{callback:function(v){return '$'+v.toLocaleString();}}}}}});
+        }
+
+        function renderUpcomingPayments() {
+            var now=new Date();
+            var up=clientsData.filter(function(c){
+                var b=parseAmount(c.BalanceDue), w=parseDate(c['Wedding Date']);
+                return b>0&&w&&w>=now;
+            }).sort(function(a,b){
+                return parseDate(a['Wedding Date'])-parseDate(b['Wedding Date']);
+            }).slice(0,10);
+            var con=document.getElementById('upcomingPayments');
+            if(up.length===0) { con.innerHTML='<p style="color:#666;text-align:center;padding:20px;">No upcoming payments</p>'; return; }
+            var h='';
+            up.forEach(function(c){
+                var w=parseDate(c['Wedding Date']), ds=w.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+                var n=c.Name||'Unknown', b=formatCurrency(parseAmount(c.BalanceDue));
+                h+='<div class="payment-item"><div class="payment-info"><div class="payment-client">'+n+'</div><div class="payment-date">Wedding: '+ds+'</div></div><div class="payment-amount">'+b+'</div></div>';
+            });
+            con.innerHTML=h;
+        }
+
+        function renderYearBreakdown() {
+            var ys={}, mn=['January','February','March','April','May','June','July','August','September','October','November','December'];
+            clientsData.forEach(function(c){
+                var w=parseDate(c['Wedding Date']), t=parseAmount(c.TotalAmount);
+                if(w&&t>0) {
+                    var y=w.getFullYear(), m=w.getMonth();
+                    if(!ys[y]) ys[y]={count:0,revenue:0,months:{}};
+                    if(!ys[y].months[m]) ys[y].months[m]={count:0,revenue:0};
+                    ys[y].count++; ys[y].revenue+=t;
+                    ys[y].months[m].count++; ys[y].months[m].revenue+=t;
+                }
+            });
+            historicalData.forEach(function(e){
+                var d=parseDate(e.Date), a=parseAmount(e.Amount);
+                if(d&&a>0) {
+                    var y=d.getFullYear(), m=d.getMonth();
+                    if(!ys[y]) ys[y]={count:0,revenue:0,months:{}};
+                    if(!ys[y].months[m]) ys[y].months[m]={count:0,revenue:0};
+                    ys[y].count++; ys[y].revenue+=a;
+                    ys[y].months[m].count++; ys[y].months[m].revenue+=a;
+                }
+            });
+            var yrs=Object.keys(ys).sort(function(a,b){return b-a;});
+            var con=document.getElementById('yearBreakdown');
+            if(yrs.length===0) { con.innerHTML='<p style="color:#666;text-align:center;padding:20px;">No data</p>'; return; }
+            var h='<table class="year-table"><thead><tr><th>Year</th><th>Bookings</th><th>Revenue</th><th>Avg</th></tr></thead><tbody>';
+            yrs.forEach(function(y){
+                var s=ys[y], avg=s.revenue/s.count;
+                h+='<tr class="year-row" onclick="toggleYear(\''+y+'\')"><td><span class="expand-icon" id="icon-'+y+'">▶</span><strong>'+y+'</strong></td><td>'+s.count+'</td><td>'+formatCurrency(s.revenue)+'</td><td>'+formatCurrency(avg)+'</td></tr>';
+                h+='<tr class="month-details" id="months-'+y+'"><td colspan="4"><table style="width:100%;margin:10px 0;background:#fff;">';
+                var mks=Object.keys(s.months).sort(function(a,b){return parseInt(a)-parseInt(b);});
+                mks.forEach(function(mi){
+                    var md=s.months[mi], ma=md.revenue/md.count;
+                    h+='<tr style="border-bottom:1px solid #e9ecef;"><td style="padding:8px;width:25%;">'+mn[mi]+'</td><td style="padding:8px;width:25%;">'+md.count+' bookings</td><td style="padding:8px;width:25%;">'+formatCurrency(md.revenue)+'</td><td style="padding:8px;width:25%;">Avg: '+formatCurrency(ma)+'</td></tr>';
+                });
+                h+='</table></td></tr>';
+            });
+            h+='</tbody></table>';
+            con.innerHTML=h;
+        }
+
+        function toggleYear(y) {
+            var mr=document.getElementById('months-'+y), ic=document.getElementById('icon-'+y);
+            if(mr.classList.contains('expanded')) { mr.classList.remove('expanded'); ic.classList.remove('expanded'); }
+            else { mr.classList.add('expanded'); ic.classList.add('expanded'); }
+        }
+
+        loadData();
+    </script>
+</body>
+</html>
