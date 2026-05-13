@@ -1,0 +1,1260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DJ Cole — Admin</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0d1117;
+  --s1: #161b27;
+  --s2: #1c2333;
+  --s3: #222d42;
+  --border: rgba(255,255,255,0.06);
+  --border2: rgba(255,255,255,0.1);
+  --accent: #4f8ef7;
+  --accent2: #7aaeff;
+  --accent-dim: rgba(79,142,247,0.12);
+  --text: #e2e8f0;
+  --muted: #4a5568;
+  --muted2: #718096;
+  --green: #48bb78;
+  --red: #fc6b6b;
+  --blue: #4f8ef7;
+  --radius: 8px;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;overflow:hidden}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);font-size:13px;display:flex}
+
+/* ── SIDEBAR ── */
+#sidebar{
+  width:200px;min-width:200px;height:100vh;background:var(--s1);
+  border-right:1px solid var(--border);display:flex;flex-direction:column;
+  overflow:hidden;transition:width 0.2s;
+}
+.sb-logo{padding:22px 20px 18px;border-bottom:1px solid var(--border)}
+.sb-logo .wordmark{font-family:'Inter',sans-serif;font-size:16px;font-weight:700;color:var(--text);letter-spacing:-0.3px}
+.sb-logo .tagline{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted2);margin-top:3px}
+.sb-nav{padding:14px 10px;flex:1;overflow-y:auto}
+.sb-section{font-size:10px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--muted2);padding:14px 10px 5px}
+.sb-item{
+  display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:6px;
+  cursor:pointer;color:var(--muted2);font-size:11px;transition:all 0.13s;
+  margin-bottom:1px;border:1px solid transparent;
+}
+.sb-item:hover{background:var(--s2);color:var(--text)}
+.sb-item.active{background:var(--accent-dim);color:var(--accent);border-color:rgba(79,142,247,0.2)}
+.sb-icon{width:15px;text-align:center;flex-shrink:0;font-size:13px}
+.sb-foot{padding:14px 20px;border-top:1px solid var(--border);font-size:11px;color:var(--muted2)}
+#sync-status{display:flex;align-items:center;gap:5px}
+.dot{width:6px;height:6px;border-radius:50%;background:var(--muted);flex-shrink:0}
+.dot.live{background:var(--green);box-shadow:0 0 5px rgba(74,158,110,0.6)}
+.dot.err{background:var(--red)}
+
+/* ── MAIN ── */
+#main{flex:1;display:flex;flex-direction:column;min-width:0;height:100vh;overflow:hidden}
+.topbar{
+  height:50px;min-height:50px;background:var(--s1);border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;padding:0 28px;flex-shrink:0;
+}
+.topbar-left{display:flex;align-items:center;gap:16px}
+.tb-title{font-family:'Inter',sans-serif;font-size:15px;font-weight:600;color:var(--text);letter-spacing:-0.2px}
+.tb-actions{display:flex;gap:8px}
+.btn{
+  display:inline-flex;align-items:center;gap:5px;padding:6px 12px;border-radius:5px;
+  font-family:'JetBrains Mono',monospace;font-size:10px;cursor:pointer;
+  transition:all 0.13s;border:1px solid var(--border2);background:var(--s2);color:var(--muted2);
+}
+.btn:hover{color:var(--text);border-color:rgba(255,255,255,0.2)}
+.btn-gold{background:var(--accent);color:#fff;border-color:var(--accent);font-weight:500}
+.btn-gold:hover{background:var(--accent2);border-color:var(--accent2);color:#fff}
+.btn-ghost{background:transparent;border-color:transparent}
+.btn-ghost:hover{background:var(--s2)}
+.btn-red{background:rgba(196,92,92,0.15);color:var(--red);border-color:rgba(196,92,92,0.25)}
+.btn-red:hover{background:rgba(196,92,92,0.25)}
+
+/* ── CONTENT AREA ── */
+#content{flex:1;overflow-y:auto;padding:24px 28px}
+.panel{display:none}
+.panel.active{display:block}
+
+/* ── PAGE HEADER ── */
+.ph{margin-bottom:22px}
+.ph h2{font-family:'Inter',sans-serif;font-size:22px;font-weight:700;color:var(--text);line-height:1;letter-spacing:-0.5px}
+.ph p{font-size:12px;color:var(--muted2);margin-top:5px}
+
+/* ── METRICS ── */
+.metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:20px}
+.metric{
+  background:var(--s1);border:1px solid var(--border);border-radius:var(--radius);
+  padding:18px;position:relative;overflow:hidden;
+}
+.metric::after{
+  content:'';position:absolute;top:0;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,var(--gold),transparent 60%);
+}
+.m-label{font-size:10px;font-weight:500;color:var(--muted2);margin-bottom:8px}
+.m-val{font-family:'Inter',sans-serif;font-size:24px;font-weight:700;color:var(--accent);line-height:1;letter-spacing:-0.5px}
+.m-sub{font-size:11px;color:var(--muted2);margin-top:5px}
+
+/* ── CARDS ── */
+.card{background:var(--s1);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:16px}
+.card-head{padding:16px 20px 0;margin-bottom:12px}
+.card-head h3{font-family:'Inter',sans-serif;font-size:14px;font-weight:600;color:var(--text)}
+.card-head p{font-size:11px;color:var(--muted2);margin-top:3px}
+.card-body{padding:0 20px 20px}
+.card-full{padding:20px}
+
+/* ── CHARTS ── */
+.charts-2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px}
+.chart-card{background:var(--s1);border:1px solid var(--border);border-radius:var(--radius);padding:18px}
+.chart-card h3{font-family:'Inter',sans-serif;font-size:14px;font-weight:600;color:var(--text);margin-bottom:3px}
+.chart-card p{font-size:11px;color:var(--muted2);margin-bottom:14px}
+.chart-card canvas{max-height:220px}
+
+/* ── TABLE ── */
+.tbl-wrap{overflow-x:auto}
+table.tbl{width:100%;border-collapse:collapse}
+table.tbl th{
+  text-align:left;font-size:8px;letter-spacing:2px;text-transform:uppercase;
+  color:var(--muted);padding:9px 14px;border-bottom:1px solid var(--border);
+  cursor:pointer;user-select:none;white-space:nowrap;
+}
+table.tbl th:hover{color:var(--accent)}
+table.tbl td{padding:11px 14px;border-bottom:1px solid rgba(255,255,255,0.03);color:var(--text);font-size:12px;vertical-align:middle}
+table.tbl tr:hover td{background:rgba(255,255,255,0.015)}
+table.tbl tr:last-child td{border-bottom:none}
+.mono{font-family:'IBM Plex Mono',monospace;font-size:11px}
+
+/* ── BADGES ── */
+.badge{display:inline-flex;align-items:center;padding:2px 7px;border-radius:20px;font-size:9px;white-space:nowrap}
+.b-green{background:rgba(74,158,110,0.15);color:var(--green)}
+.b-gold{background:var(--accent-dim);color:var(--accent)}
+.b-red{background:rgba(196,92,92,0.15);color:var(--red)}
+.b-blue{background:rgba(74,126,196,0.15);color:var(--blue)}
+.b-gray{background:rgba(255,255,255,0.06);color:var(--muted2)}
+
+/* ── LOADER ── */
+.loader{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px;color:var(--muted)}
+.spin{width:28px;height:28px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin 0.7s linear infinite;margin-bottom:14px}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── TOOLBAR ── */
+.toolbar{display:flex;gap:10px;margin-bottom:16px;align-items:center}
+.search{
+  flex:1;background:var(--s2);border:1px solid var(--border2);border-radius:5px;
+  padding:7px 12px;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:11px;outline:none;
+}
+.search:focus{border-color:var(--accent)}
+.search::placeholder{color:var(--muted)}
+.fsel{
+  background:var(--s2);border:1px solid var(--border2);border-radius:5px;
+  padding:7px 12px;color:var(--muted2);font-family:'JetBrains Mono',monospace;font-size:11px;outline:none;cursor:pointer;
+}
+.fsel:focus{border-color:var(--accent)}
+
+/* ── EXPANDED ROW ── */
+.exp-row{display:none}
+.exp-row.open{display:table-row}
+.exp-cell{background:var(--s2) !important;padding:0 !important;border-bottom:1px solid var(--border) !important}
+.exp-inner{padding:16px 20px}
+.detail-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px;margin-bottom:14px}
+.detail-item label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--muted2);display:block;margin-bottom:2px}
+.detail-item span{font-size:12px;color:var(--text)}
+
+/* ── EDIT FORM ── */
+.edit-form{background:var(--s3);border:1px solid var(--border2);border-radius:var(--radius);padding:18px;margin-top:12px}
+.edit-form h4{font-family:'Inter',sans-serif;font-size:13px;font-weight:600;color:var(--accent);margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.form-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;margin-bottom:14px}
+.form-group label{font-size:11px;font-weight:500;color:var(--muted2);display:block;margin-bottom:4px}
+.form-group input,.form-group select,.form-group textarea{
+  width:100%;background:var(--s1);border:1px solid var(--border2);border-radius:4px;
+  padding:6px 10px;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:11px;outline:none;
+}
+.form-group input:focus,.form-group select:focus,.form-group textarea:focus{border-color:var(--accent)}
+.form-group textarea{resize:vertical;min-height:70px}
+.form-group select option{background:var(--s2)}
+.form-actions{display:flex;gap:8px;margin-top:4px}
+.save-note{font-size:11px;color:var(--muted2);margin-top:8px}
+
+/* ── PAYMENT LOG FORM ── */
+.pay-form{display:grid;grid-template-columns:1fr 1fr auto;gap:10px;align-items:end;background:var(--s3);border:1px solid var(--border2);border-radius:var(--radius);padding:14px;margin-top:12px}
+
+/* ── PORTAL SUBMISSIONS ── */
+.portal-card{background:var(--s1);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:10px}
+.portal-card-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.portal-card-name{font-family:'Inter',sans-serif;font-size:14px;font-weight:600;color:var(--text)}
+.portal-card-date{font-size:11px;color:var(--muted2)}
+.portal-sections{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.section-pill{font-size:9px;padding:2px 8px;border-radius:20px}
+
+/* ── TXT PREVIEW ── */
+.txt-preview{
+  background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);
+  padding:16px;font-family:'JetBrains Mono',monospace;font-size:11px;
+  color:var(--text);white-space:pre-wrap;line-height:1.7;max-height:400px;overflow-y:auto;
+  margin-top:12px;
+}
+
+/* ── INVOICE ── */
+#invoice-wrap{background:var(--s1);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-top:16px}
+.inv-select-row{display:grid;grid-template-columns:1fr 1fr auto;gap:12px;align-items:end;margin-bottom:16px}
+#invoice-preview{display:none}
+.inv-doc{
+  background:#fff;color:#111;border-radius:var(--radius);padding:40px;
+  font-family:'JetBrains Mono',monospace;font-size:11px;max-width:680px;margin:0 auto;
+}
+.inv-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:32px;padding-bottom:20px;border-bottom:2px solid #111}
+.inv-from h2{font-family:'Inter',sans-serif;font-size:22px;font-weight:700;margin-bottom:4px;letter-spacing:-0.5px}
+.inv-from p{font-size:10px;color:#555;line-height:1.6}
+.inv-meta{text-align:right}
+.inv-meta .inv-num{font-size:18px;font-weight:600;color:#111;margin-bottom:4px}
+.inv-meta p{font-size:10px;color:#555}
+.inv-to{margin-bottom:24px}
+.inv-to h4{font-size:9px;letter-spacing:2px;text-transform:uppercase;color:#888;margin-bottom:6px}
+.inv-to p{font-size:12px;color:#111;font-weight:500}
+.inv-to .sub{font-size:10px;color:#555}
+.inv-table{width:100%;border-collapse:collapse;margin-bottom:20px}
+.inv-table th{text-align:left;font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:#888;padding:8px 0;border-bottom:1px solid #ddd}
+.inv-table td{padding:10px 0;border-bottom:1px solid #f0f0f0;font-size:11px;color:#333}
+.inv-table td:last-child,.inv-table th:last-child{text-align:right}
+.inv-totals{margin-left:auto;width:240px}
+.inv-total-row{display:flex;justify-content:space-between;padding:5px 0;font-size:11px;color:#555}
+.inv-total-row.total{border-top:1px solid #111;margin-top:4px;padding-top:10px;font-size:13px;color:#111;font-weight:600}
+.inv-total-row.paid{color:var(--green)}
+.inv-total-row.due{color:#c00;font-size:14px;font-weight:700}
+.inv-pay{margin-top:24px;padding-top:16px;border-top:1px solid #eee;font-size:10px;color:#555;line-height:1.7}
+.inv-footer{margin-top:16px;font-size:9px;color:#aaa;text-align:center}
+
+/* ── UPCOMING PAYMENTS ── */
+.pmt-row{
+  display:grid;grid-template-columns:2fr 1.5fr 1.5fr 1fr;gap:14px;
+  align-items:center;padding:12px;border-radius:6px;
+  background:var(--s2);margin-bottom:7px;border:1px solid var(--border);
+}
+.pmt-name{font-weight:600;font-size:13px}
+.pmt-date{font-size:10px;color:var(--muted2);margin-top:1px}
+.pmt-amount{font-family:'Inter',sans-serif;font-size:15px;font-weight:700;color:var(--accent);text-align:right}
+
+/* ── MONTH CHIPS ── */
+.month-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px;padding:12px 0}
+.month-chip{background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:10px 12px}
+.mc-name{font-size:10px;font-weight:500;color:var(--muted2);margin-bottom:3px}
+.mc-amt{font-family:'Inter',sans-serif;font-size:17px;font-weight:700;color:var(--accent)}
+.mc-cnt{font-size:10px;color:var(--muted2)}
+
+/* ── VENUE ── */
+.venue-sub td{font-size:10px;padding:5px 10px;border-bottom:1px solid rgba(255,255,255,0.03);color:var(--muted2)}
+
+/* ── BOOKING EMBED ── */
+.booking-wrap{border-radius:var(--radius);overflow:hidden;border:1px solid var(--border);background:#fff}
+
+/* ── MODAL ── */
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:1000;align-items:center;justify-content:center}
+.modal-bg.open{display:flex}
+.modal{background:var(--s1);border:1px solid var(--border2);border-radius:10px;padding:24px;max-width:520px;width:90%;max-height:85vh;overflow-y:auto}
+.modal h3{font-family:'Inter',sans-serif;font-size:16px;font-weight:600;color:var(--text);margin-bottom:16px}
+.modal-footer{display:flex;justify-content:flex-end;gap:8px;margin-top:16px;padding-top:14px;border-top:1px solid var(--border)}
+
+/* ── TOAST ── */
+#toast{
+  position:fixed;bottom:24px;right:24px;z-index:2000;
+  background:var(--s3);border:1px solid var(--border2);border-radius:6px;
+  padding:10px 16px;font-size:11px;color:var(--text);
+  transform:translateY(80px);opacity:0;transition:all 0.25s;
+  pointer-events:none;max-width:300px;
+}
+#toast.show{transform:translateY(0);opacity:1}
+#toast.success{border-color:rgba(74,158,110,0.4);background:rgba(74,158,110,0.12)}
+#toast.error{border-color:rgba(196,92,92,0.4);background:rgba(196,92,92,0.12)}
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+
+/* ── RESPONSIVE ── */
+@media(max-width:860px){
+  #sidebar{width:54px;min-width:54px}
+  .sb-logo .tagline,.sb-item span,.sb-section,.sb-foot{display:none}
+  .sb-item{justify-content:center;padding:10px}
+  .charts-2{grid-template-columns:1fr}
+  .pmt-row{grid-template-columns:1fr 1fr}
+  .inv-select-row{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside id="sidebar">
+  <div class="sb-logo">
+    <div class="wordmark">DJ Cole</div>
+    <div class="tagline">Admin Console</div>
+  </div>
+  <nav class="sb-nav">
+    <div class="sb-section">Analytics</div>
+    <div class="sb-item active" onclick="nav('dashboard',this)"><span class="sb-icon">▦</span><span>Dashboard</span></div>
+    <div class="sb-item" onclick="nav('cashflow',this)"><span class="sb-icon">◈</span><span>Cash Flow</span></div>
+    <div class="sb-item" onclick="nav('venues',this)"><span class="sb-icon">◎</span><span>Venues</span></div>
+    <div class="sb-section">Clients</div>
+    <div class="sb-item" onclick="nav('clients',this)"><span class="sb-icon">◻</span><span>Client Manager</span></div>
+    <div class="sb-item" onclick="nav('submissions',this)"><span class="sb-icon">◈</span><span>Portal Submissions</span></div>
+    <div class="sb-section">Tools</div>
+    <div class="sb-item" onclick="nav('payment',this)"><span class="sb-icon">$</span><span>Record Payment</span></div>
+    <div class="sb-item" onclick="nav('invoice',this)"><span class="sb-icon">▤</span><span>Invoice Generator</span></div>
+    <div class="sb-item" onclick="nav('booking',this)"><span class="sb-icon">◇</span><span>Booking Info</span></div>
+  </nav>
+  <div class="sb-foot">
+    <div id="sync-status"><div class="dot" id="dot"></div><span id="sync-txt">loading</span></div>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<div id="main">
+  <div class="topbar">
+    <div class="topbar-left">
+      <span class="tb-title" id="tb-title">Dashboard</span>
+    </div>
+    <div class="tb-actions">
+      <button class="btn" onclick="loadAll()">↺ Refresh</button>
+      <button class="btn btn-gold" onclick="exportCSV()">↓ Export CSV</button>
+    </div>
+  </div>
+
+  <div id="content">
+
+    <!-- ══ DASHBOARD ══ -->
+    <div class="panel active" id="p-dashboard">
+      <div class="ph"><h2>Overview</h2><p>Business snapshot across all clients and bookings</p></div>
+      <div id="d-loader" class="loader"><div class="spin"></div><div>Syncing data...</div></div>
+      <div id="d-body" style="display:none">
+        <div class="metrics" id="metrics-grid"></div>
+        <div class="card">
+          <div class="card-head"><h3>Next Payments Due</h3><p>Upcoming balances by wedding date</p></div>
+          <div class="card-body" id="upcoming"></div>
+        </div>
+        <div class="charts-2">
+          <div class="chart-card"><h3>Monthly Revenue</h3><p>Collected vs expected by month</p><canvas id="cMonthly"></canvas></div>
+          <div class="chart-card"><h3>Package Distribution</h3><p>Revenue share by package</p><canvas id="cPackage"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="card-head"><h3>Year Performance</h3><p>Click to expand monthly breakdown</p></div>
+          <div class="card-body"><div class="tbl-wrap"><table class="tbl"><thead><tr><th>Year</th><th>Bookings</th><th>Revenue</th><th>Avg / Booking</th></tr></thead><tbody id="year-body"></tbody></table></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ CASH FLOW ══ -->
+    <div class="panel" id="p-cashflow">
+      <div class="ph"><h2>Cash Flow</h2><p>2026 projection — paid vs outstanding per month</p></div>
+      <div class="chart-card" style="margin-bottom:16px"><h3>2026 Cash Flow Projection</h3><p>Green = collected · Red = still owed</p><canvas id="cCashflow" style="max-height:280px"></canvas></div>
+      <div class="card">
+        <div class="card-head"><h3>Outstanding Balances</h3><p>All clients with a remaining balance</p></div>
+        <div class="card-body"><div class="tbl-wrap"><table class="tbl"><thead><tr><th>Client</th><th>Wedding</th><th>Package</th><th>Total</th><th>Paid</th><th>Balance</th></tr></thead><tbody id="outstanding-body"></tbody></table></div></div>
+      </div>
+    </div>
+
+    <!-- ══ VENUES ══ -->
+    <div class="panel" id="p-venues">
+      <div class="ph"><h2>Venues</h2><p>Revenue and history by location — click to expand</p></div>
+      <div class="card">
+        <div class="card-body" style="padding-top:16px"><div class="tbl-wrap"><table class="tbl"><thead><tr><th onclick="sortV('venue')">Venue ⇅</th><th onclick="sortV('revenue')">Revenue ⇅</th><th onclick="sortV('count')">Events ⇅</th><th onclick="sortV('lastDate')">Last Event ⇅</th></tr></thead><tbody id="venue-body"></tbody></table></div></div>
+      </div>
+    </div>
+
+    <!-- ══ CLIENT MANAGER ══ -->
+    <div class="panel" id="p-clients">
+      <div class="ph"><h2>Client Manager</h2><p>Edit client details and log payments — syncs to Google Sheets</p></div>
+      <div style="display:flex;align-items:center;gap:10px;background:var(--accent-dim);border:1px solid rgba(79,142,247,0.2);border-radius:7px;padding:10px 14px;margin-bottom:16px;font-size:12px;color:var(--accent)">
+        <span>✎</span><span id="client-count">Loading...</span>
+        <button class="btn btn-gold" style="margin-left:auto" onclick="exportCSV()">↓ Export CSV</button>
+      </div>
+      <div class="toolbar">
+        <input class="search" type="text" placeholder="Search name, venue, package..." id="cl-search" oninput="filterClients()">
+        <select class="fsel" id="cl-year" onchange="filterClients()"><option value="">All Years</option><option>2024</option><option>2025</option><option>2026</option><option>2027</option></select>
+        <select class="fsel" id="cl-bal" onchange="filterClients()"><option value="">All</option><option value="out">Balance Due</option><option value="paid">Paid in Full</option></select>
+      </div>
+      <div class="card" style="padding:0;overflow:hidden">
+        <div class="tbl-wrap"><table class="tbl"><thead><tr><th></th><th onclick="sortClients('name')" style="cursor:pointer">Name ⇅</th><th onclick="sortClients('date')" style="cursor:pointer">Wedding ⇅</th><th onclick="sortClients('venue')" style="cursor:pointer">Venue ⇅</th><th onclick="sortClients('package')" style="cursor:pointer">Package ⇅</th><th onclick="sortClients('total')" style="cursor:pointer">Total ⇅</th><th onclick="sortClients('balance')" style="cursor:pointer">Balance ⇅</th><th>Status</th></tr></thead><tbody id="clients-body"></tbody></table></div>
+      </div>
+    </div>
+
+    <!-- ══ PORTAL SUBMISSIONS ══ -->
+    <div class="panel" id="p-submissions">
+      <div class="ph"><h2>Portal Submissions</h2><p>All clients with portal access — click to view their submission</p></div>
+      <div id="sub-loader" class="loader"><div class="spin"></div><div>Loading submissions...</div></div>
+      <div id="sub-body" style="display:none">
+        <div class="toolbar">
+          <input class="search" type="text" placeholder="Search by name, email, or access code..." id="sub-search" oninput="filterSubs()">
+          <select class="fsel" id="sub-filter" onchange="filterSubs()"><option value="">All</option><option value="submitted">Has Data</option><option value="pending">Not Started</option></select>
+          <button class="btn btn-gold" onclick="exportAllTXT()">↓ Batch TXT Export</button>
+        </div>
+        <div class="card" style="padding:0;overflow:hidden">
+          <table class="tbl" id="sub-table">
+            <thead><tr>
+              <th></th>
+              <th>Client Name</th>
+              <th>Access Code</th>
+              <th>Email</th>
+              <th>Wedding Date</th>
+              <th>Status</th>
+              <th>Last Updated</th>
+              <th></th>
+            </tr></thead>
+            <tbody id="sub-list"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- ══ RECORD PAYMENT ══ -->
+    <div class="panel" id="p-payment">
+      <div class="ph"><h2>Record Payment</h2><p>Log a payment directly to your Payments from Form sheet</p></div>
+      <div class="card" style="max-width:680px">
+        <div class="card-head"><h3>Payment Details</h3><p>All fields write directly to your existing payment sheet — your SUMIF updates automatically</p></div>
+        <div class="card-body" style="padding-top:8px">
+          <div class="form-grid" style="grid-template-columns:1fr 1fr">
+            <div class="form-group" style="grid-column:1/-1">
+              <label>Client Name</label>
+              <select id="rp-name" style="width:100%;background:var(--s2);border:1px solid var(--border2);border-radius:6px;padding:8px 10px;color:var(--text);font-family:inherit;font-size:13px;outline:none">
+                <option value="">— select client —</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Amount Paid ($)</label>
+              <input type="number" id="rp-amt" placeholder="0.00" min="0" step="0.01" style="background:var(--s2);border:1px solid var(--border2);border-radius:6px;padding:8px 10px;color:var(--text);font-family:inherit;font-size:13px;outline:none;width:100%">
+            </div>
+            <div class="form-group">
+              <label>Payment Method</label>
+              <select id="rp-method" style="width:100%;background:var(--s2);border:1px solid var(--border2);border-radius:6px;padding:8px 10px;color:var(--text);font-family:inherit;font-size:13px;outline:none">
+                <option>Venmo</option>
+                <option>CashApp</option>
+                <option>Cash</option>
+                <option>Check</option>
+                <option>Zelle</option>
+                <option>Other</option>
+              </select>
+            </div>
+            <div class="form-group" style="grid-column:1/-1">
+              <label>Username / Paid From</label>
+              <input type="text" id="rp-user" placeholder="e.g. @johndoe or John Doe" style="background:var(--s2);border:1px solid var(--border2);border-radius:6px;padding:8px 10px;color:var(--text);font-family:inherit;font-size:13px;outline:none;width:100%">
+            </div>
+          </div>
+          <div style="margin-top:16px;display:flex;align-items:center;gap:12px">
+            <button class="btn btn-gold" style="padding:9px 20px;font-size:13px" onclick="submitRecordPayment()">Record Payment</button>
+            <button class="btn" onclick="clearPaymentForm()">Clear</button>
+            <span id="rp-msg" style="font-size:12px;color:var(--green);margin-left:8px"></span>
+          </div>
+          <div style="margin-top:14px;padding:10px 14px;background:var(--s3);border-radius:6px;font-size:11px;color:var(--muted2);line-height:1.7">
+            💡 This writes a new row to your <strong style="color:var(--text)">"Payments from Form"</strong> sheet — identical to what your Google Form does. The mirror Payments sheet and the SUMIF in column N of Clients will update automatically.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ INVOICE GENERATOR ══ -->
+    <div class="panel" id="p-invoice">
+      <div class="ph"><h2>Invoice Generator</h2><p>Generate a PDF invoice for any client on demand</p></div>
+      <div id="invoice-wrap">
+        <div class="inv-select-row">
+          <div class="form-group"><label>Select Client</label><select class="fsel" id="inv-client" onchange="previewInvoice()" style="width:100%"><option value="">— choose client —</option></select></div>
+          <div class="form-group"><label>Invoice Note (optional)</label><input type="text" id="inv-note" placeholder="e.g. Balance due before wedding day" style="background:var(--s2);border:1px solid var(--border2);border-radius:4px;padding:6px 10px;color:var(--text);font-family:inherit;font-size:11px;outline:none;width:100%"></div>
+          <button class="btn btn-gold" onclick="downloadInvoice()">↓ Download PDF</button>
+        </div>
+        <div id="invoice-preview"></div>
+      </div>
+    </div>
+
+    <!-- ══ BOOKING INFO ══ -->
+    <div class="panel" id="p-booking">
+      <div class="ph"><h2>Booking Info</h2><p>Client-facing pricing packet</p></div>
+      <div class="booking-wrap" style="background:radial-gradient(#b6b6b6 0%,#152f3f 80%);padding:16px">
+        <div style="max-width:800px;margin:0 auto;background:#fff;border-radius:6px;overflow:hidden">
+          <div style="background:#b6b6b6;padding:18px;text-align:center">
+            <h3 style="color:#152f3f;font-family:'Cormorant Garamond',serif;font-size:1.3em;margin-bottom:4px">Wedding Information Packet</h3>
+            <p style="color:#152f3f;font-size:0.85em">Swipe to view each page</p>
+          </div>
+          <div style="padding:8px">
+            <div style="position:relative;width:100%;height:0;padding-top:129.4%;overflow:hidden;border-radius:4px">
+              <iframe loading="lazy" style="position:absolute;width:100%;height:100%;top:0;left:0;border:none"
+                src="https://www.canva.com/design/DAF0Jz_pjAM/QCojXZa71P-AjikAeKbYmA/view?embed"
+                allowfullscreen allow="fullscreen"></iframe>
+            </div>
+            <div style="text-align:center;padding:10px;font-size:0.82em;color:#666">
+              <a href="https://www.canva.com/design/DAF0Jz_pjAM/QCojXZa71P-AjikAeKbYmA/view" target="_blank" style="color:#667eea">View on Canva</a>
+              <p style="margin-top:4px;color:#aaa">by Cole Maddox</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</div><!-- /main -->
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<script>
+// ══════════════════════════════════════════════════
+// CONFIG
+// ══════════════════════════════════════════════════
+const DASH_API  = 'https://script.google.com/macros/s/AKfycbwfywITzxf_sI5afFn9QTuzmi8V0ilhswJEhIUxTw4bbllSPDUNwRI7R-bE2cFnQSKZqg/exec';
+const PORTAL_API = 'https://script.google.com/macros/s/AKfycbyC_pVvrxkSSv2t7m86qp5msMlZwEeMd2KZX5sNWJ6CUp3XVgNY2RRPKcEMmRWdYt9eSw/exec';
+
+// ══════════════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════════════
+let clients=[], payments=[], historical=[], submissions=[];
+let vSort='revenue', vDir='desc', vExp=null;
+let cExp=null;
+let chartMonthly, chartPackage, chartCashflow;
+let subsAll=[];
+
+// ══════════════════════════════════════════════════
+// UTILS
+// ══════════════════════════════════════════════════
+const $ = id => document.getElementById(id);
+const amt = v => parseFloat((v||'').toString().replace(/[$,]/g,''))||0;
+const dt  = s => { if(!s) return null; try{ return new Date(s); } catch(e){ return null; } };
+const fmt = n => new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',minimumFractionDigits:0,maximumFractionDigits:0}).format(n);
+const fmtD= d => d ? d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '—';
+const esc = s => (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+
+function toast(msg, type='') {
+  const t=$('toast'); t.textContent=msg; t.className='show '+(type);
+  setTimeout(()=>{ t.className=''; },3000);
+}
+
+// ══════════════════════════════════════════════════
+// NAVIGATION
+// ══════════════════════════════════════════════════
+const titles = {dashboard:'Dashboard',cashflow:'Cash Flow',venues:'Venues',clients:'Client Manager',submissions:'Portal Submissions',payment:'Record Payment',invoice:'Invoice Generator',booking:'Booking Info'};
+
+function nav(id, el) {
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.sb-item').forEach(n=>n.classList.remove('active'));
+  $('p-'+id).classList.add('active');
+  el.classList.add('active');
+  $('tb-title').textContent = titles[id];
+  if(id==='invoice') populateInvoiceSelect();
+  if(id==='submissions') loadSubmissions();
+}
+
+// ══════════════════════════════════════════════════
+// DATA LOAD
+// ══════════════════════════════════════════════════
+function loadAll() {
+  $('d-loader').style.display='flex'; $('d-body').style.display='none';
+  $('dot').className='dot'; $('sync-txt').textContent='loading';
+
+  Promise.all([
+    fetch(DASH_API+'?sheet=Clients').then(r=>r.json()),
+    fetch(DASH_API+'?sheet=Payments').then(r=>r.json()),
+    fetch(DASH_API+'?sheet=Historical').then(r=>r.json()),
+  ]).then(([c,p,h]) => {
+    clients=c; payments=p; historical=h;
+    $('dot').className='dot live'; $('sync-txt').textContent='live';
+    $('d-loader').style.display='none'; $('d-body').style.display='block';
+    buildDash(); buildCashflow(); buildVenues(); buildClients();
+    populatePaymentDropdown(); populateInvoiceSelect();
+  }).catch(err => {
+    $('dot').className='dot err'; $('sync-txt').textContent='error';
+    $('d-loader').innerHTML='<div style="color:var(--red)">⚠ '+err.message+'</div>';
+    toast('Failed to load data','error');
+  });
+}
+
+function loadSubmissions() {
+  if(subsAll.length) { renderSubs(subsAll); return; }
+  $('sub-loader').style.display='flex'; $('sub-body').style.display='none';
+  fetch(PORTAL_API+'?action=getAllSubmissions')
+    .then(r=>r.json())
+    .then(data => {
+      subsAll = data.submissions || [];
+      $('sub-loader').style.display='none'; $('sub-body').style.display='block';
+      renderSubs(subsAll);
+    })
+    .catch(() => {
+      // If getAllSubmissions not yet deployed, show clients with submission status
+      $('sub-loader').style.display='none'; $('sub-body').style.display='block';
+      subsAll = clients.map(c => ({
+        accessCode: generateCodeFromClient(c),
+        clientName: c.Name||'',
+        weddingDate: c['Wedding Date']||'',
+        submitted: false,
+        data: {}
+      }));
+      renderSubs(subsAll);
+    });
+}
+
+function generateCodeFromClient(c) {
+  if(!c.Name||!c['Wedding Date']) return '';
+  const parts = c.Name.trim().split(' ');
+  const last = parts[parts.length-1].toLowerCase();
+  const d = dt(c['Wedding Date']);
+  if(!d) return '';
+  const m = String(d.getMonth()+1).padStart(2,'0');
+  const dy= String(d.getDate()).padStart(2,'0');
+  const y = String(d.getFullYear()).slice(-2);
+  return `${last}-${m}${dy}${y}`;
+}
+
+// ══════════════════════════════════════════════════
+// DASHBOARD
+// ══════════════════════════════════════════════════
+function buildDash() {
+  const now=new Date(), cy=now.getFullYear(), cm=now.getMonth();
+  const MONTHS=['January','February','March','April','May','June','July','August','September','October','November','December'];
+  let outstanding=0, dueThisMonth=0, ytd=0, thisMonth=0, rev26=0, cnt26=0;
+
+  clients.forEach(c => {
+    const bal=amt(c.BalanceDue), total=amt(c.TotalAmount), d=dt(c['Wedding Date']);
+    if(!d) return;
+    if(d>=now||d.getFullYear()===2026) outstanding+=bal;
+    if(d.getFullYear()===cy&&d.getMonth()===cm) dueThisMonth+=bal;
+    if(d.getFullYear()===2026&&total>0){rev26+=total;cnt26++;}
+  });
+  payments.forEach(p => {
+    const a=amt(p['Amount Paid']), d=dt(p['Date Paid']);
+    if(!d) return;
+    if(d.getFullYear()===cy){ytd+=a; if(d.getMonth()===cm) thisMonth+=a;}
+  });
+
+  const M = [
+    {l:'Due This Month', v:fmt(dueThisMonth), s:MONTHS[cm]+' '+cy+' weddings'},
+    {l:'Collected This Month', v:fmt(thisMonth), s:'Payments received in '+MONTHS[cm]},
+    {l:'Outstanding Balance', v:fmt(outstanding), s:'Total remaining owed'},
+    {l:'Revenue YTD', v:fmt(ytd), s:'Collected in '+cy},
+    {l:'2026+ Avg Booking', v:fmt(cnt26>0?rev26/cnt26:0), s:'Average deal size'},
+    {l:'2026+ Bookings', v:cnt26, s:'Future weddings confirmed'},
+  ];
+  $('metrics-grid').innerHTML = M.map(m=>`<div class="metric"><div class="m-label">${m.l}</div><div class="m-val">${m.v}</div><div class="m-sub">${m.s}</div></div>`).join('');
+
+  renderUpcoming(); renderMonthly(); renderPackage(); renderYears();
+}
+
+function renderUpcoming() {
+  const now=new Date();
+  const rows = clients.filter(c=>amt(c.BalanceDue)>0&&dt(c['Wedding Date'])>=now)
+    .sort((a,b)=>dt(a['Wedding Date'])-dt(b['Wedding Date'])).slice(0,8);
+  $('upcoming').innerHTML = rows.map(c=>`
+    <div class="pmt-row">
+      <div><div class="pmt-name">${esc(c.Name||'Unknown')}</div><div class="pmt-date">${fmtD(dt(c['Wedding Date']))}</div></div>
+      <div style="color:var(--muted2);font-size:11px">${esc(c['Package Choice']||'—')}</div>
+      <div style="color:var(--muted2);font-size:10px">${esc(c['Add-Ons']||'None')}</div>
+      <div class="pmt-amount">${fmt(amt(c.BalanceDue))}</div>
+    </div>`).join('') || '<p style="color:var(--muted);text-align:center;padding:20px">No upcoming payments</p>';
+}
+
+function renderMonthly() {
+  const MO=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const now=new Date(), cy=now.getFullYear(), ly=cy-1;
+  const coll=MO.map(()=>0), exp=MO.map(()=>0);
+  payments.forEach(p=>{const a=amt(p['Amount Paid']),d=dt(p['Date Paid']);if(d&&d.getFullYear()===ly)coll[d.getMonth()]+=a;});
+  historical.forEach(e=>{const a=amt(e.Amount),d=dt(e.Date);if(d&&d.getFullYear()===ly)coll[d.getMonth()]+=a;});
+  clients.forEach(c=>{const t=amt(c.TotalAmount),d=dt(c['Wedding Date']);if(d&&d.getFullYear()===cy)exp[d.getMonth()]+=t;});
+  if(chartMonthly) chartMonthly.destroy();
+  chartMonthly=new Chart($('cMonthly').getContext('2d'),{type:'bar',data:{labels:MO,datasets:[
+    {label:'Collected ('+ly+')',data:coll,backgroundColor:'rgba(79,142,247,0.75)',borderColor:'rgba(79,142,247,1)',borderWidth:1},
+    {label:'Expected ('+cy+')',data:exp,backgroundColor:'rgba(74,126,196,0.5)',borderColor:'rgba(74,126,196,1)',borderWidth:1}
+  ]},options:{responsive:true,maintainAspectRatio:true,plugins:{legend:{labels:{color:'#8a847a',font:{family:'JetBrains Mono',size:10}}}},scales:{x:{ticks:{color:'#5a5750',font:{family:'JetBrains Mono',size:9}},grid:{color:'rgba(255,255,255,0.03)'}},y:{ticks:{color:'#5a5750',font:{family:'JetBrains Mono',size:9},callback:v=>'$'+v.toLocaleString()},grid:{color:'rgba(255,255,255,0.03)'}}}}});
+}
+
+function renderPackage() {
+  const pkgs={};
+  clients.forEach(c=>{const k=c['Package Choice']||'Unknown';pkgs[k]=(pkgs[k]||0)+amt(c.TotalAmount);});
+  if(chartPackage) chartPackage.destroy();
+  chartPackage=new Chart($('cPackage').getContext('2d'),{type:'doughnut',data:{labels:Object.keys(pkgs),datasets:[{data:Object.values(pkgs),backgroundColor:['rgba(79,142,247,0.85)','rgba(74,126,196,0.8)','rgba(74,158,110,0.8)','rgba(196,92,92,0.8)','rgba(150,90,200,0.8)'],borderColor:'#0e1117',borderWidth:2}]},options:{responsive:true,maintainAspectRatio:true,plugins:{legend:{position:'bottom',labels:{color:'#8a847a',font:{family:'JetBrains Mono',size:10},padding:12}},tooltip:{callbacks:{label:c=>c.label+': '+fmt(c.parsed)}}}}});
+}
+
+function renderYears() {
+  const MN=['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const stats={};
+  const add=(year,month,rev)=>{
+    if(!stats[year])stats[year]={count:0,revenue:0,months:{}};
+    if(!stats[year].months[month])stats[year].months[month]={count:0,revenue:0};
+    stats[year].count++;stats[year].revenue+=rev;stats[year].months[month].count++;stats[year].months[month].revenue+=rev;
+  };
+  clients.forEach(c=>{const d=dt(c['Wedding Date']),t=amt(c.TotalAmount);if(d&&t>0)add(d.getFullYear(),d.getMonth(),t);});
+  historical.forEach(e=>{const d=dt(e.Date),a=amt(e.Amount);if(d&&a>0)add(d.getFullYear(),d.getMonth(),a);});
+
+  const years=Object.keys(stats).sort((a,b)=>b-a);
+  $('year-body').innerHTML = years.map(y=>{
+    const s=stats[y];
+    const mChips = Object.keys(s.months).sort((a,b)=>a-b).map(mi=>`
+      <div class="month-chip"><div class="mc-name">${MN[mi]}</div><div class="mc-amt">${fmt(s.months[mi].revenue)}</div><div class="mc-cnt">${s.months[mi].count} booking${s.months[mi].count!==1?'s':''}</div></div>`).join('');
+    return `
+      <tr style="cursor:pointer" onclick="toggleYear('${y}')">
+        <td><span id="yi-${y}" style="margin-right:8px;font-size:9px;color:var(--muted)">▶</span><strong>${y}</strong></td>
+        <td>${s.count}</td><td style="color:var(--gold);font-family:'Cormorant Garamond',serif;font-size:16px">${fmt(s.revenue)}</td>
+        <td>${fmt(s.revenue/s.count)}</td>
+      </tr>
+      <tr id="ym-${y}" style="display:none"><td colspan="4" style="padding:0">
+        <div style="background:var(--s2);padding:0 14px 14px 40px"><div class="month-grid">${mChips}</div></div>
+      </td></tr>`;
+  }).join('');
+}
+
+window.toggleYear=y=>{
+  const r=$('ym-'+y),i=$('yi-'+y),open=r.style.display!=='none';
+  r.style.display=open?'none':'table-row'; i.textContent=open?'▶':'▼';
+};
+
+// ══════════════════════════════════════════════════
+// CASH FLOW
+// ══════════════════════════════════════════════════
+function buildCashflow() {
+  const MO=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const paid=MO.map(()=>0), owed=MO.map(()=>0);
+  clients.forEach(c=>{const d=dt(c['Wedding Date']);if(d&&d.getFullYear()===2026){paid[d.getMonth()]+=amt(c.AmountPaid);owed[d.getMonth()]+=amt(c.BalanceDue);}});
+  if(chartCashflow) chartCashflow.destroy();
+  chartCashflow=new Chart($('cCashflow').getContext('2d'),{type:'bar',data:{labels:MO,datasets:[
+    {label:'Paid',data:paid,backgroundColor:'rgba(74,158,110,0.75)',borderColor:'rgba(74,158,110,1)',borderWidth:1},
+    {label:'Outstanding',data:owed,backgroundColor:'rgba(196,92,92,0.55)',borderColor:'rgba(196,92,92,1)',borderWidth:1}
+  ]},options:{responsive:true,maintainAspectRatio:true,plugins:{legend:{labels:{color:'#8a847a',font:{family:'JetBrains Mono',size:10}}}},scales:{x:{stacked:true,ticks:{color:'#5a5750',font:{family:'JetBrains Mono',size:9}},grid:{color:'rgba(255,255,255,0.03)'}},y:{stacked:true,ticks:{color:'#5a5750',font:{family:'JetBrains Mono',size:9},callback:v=>'$'+v.toLocaleString()},grid:{color:'rgba(255,255,255,0.03)'}}}}});
+
+  $('outstanding-body').innerHTML=clients.filter(c=>amt(c.BalanceDue)>0)
+    .sort((a,b)=>(dt(a['Wedding Date'])||0)-(dt(b['Wedding Date'])||0))
+    .map(c=>{
+      const b=amt(c.BalanceDue),t=amt(c.TotalAmount),pct=t>0?Math.round((t-b)/t*100):0;
+      return `<tr><td>${esc(c.Name||'—')}</td><td class="mono" style="font-size:10px">${fmtD(dt(c['Wedding Date']))}</td><td>${esc(c['Package Choice']||'—')}</td><td class="mono">${fmt(t)}</td><td class="mono" style="color:var(--green)">${fmt(t-b)} <span style="color:var(--muted);font-size:9px">(${pct}%)</span></td><td class="mono" style="color:var(--red)">${fmt(b)}</td></tr>`;
+    }).join('');
+}
+
+// ══════════════════════════════════════════════════
+// VENUES
+// ══════════════════════════════════════════════════
+let venueMap={};
+function buildVenues(){
+  venueMap={};
+  const add=(v,a,d,n)=>{v=(v||'').trim();if(!v||!a)return;if(!venueMap[v])venueMap[v]={revenue:0,count:0,lastDate:null,events:[]};venueMap[v].revenue+=a;venueMap[v].count++;venueMap[v].events.push({date:d,name:n,amount:a});if(!venueMap[v].lastDate||d>venueMap[v].lastDate)venueMap[v].lastDate=d;};
+  clients.forEach(c=>add(c.Location,amt(c.TotalAmount),dt(c['Wedding Date']),c.Name||'Unknown'));
+  historical.forEach(e=>add(e.Location,amt(e.Amount),dt(e.Date),e.Who||'Unknown'));
+  renderVenues();
+}
+window.sortV=(col)=>{if(vSort===col)vDir=vDir==='asc'?'desc':'asc';else{vSort=col;vDir='desc';}vExp=null;renderVenues();};
+function renderVenues(){
+  const arr=Object.entries(venueMap).map(([v,d])=>({venue:v,...d}));
+  arr.sort((a,b)=>{let av=a[vSort],bv=b[vSort];if(vSort==='lastDate'){av=av?av.getTime():0;bv=bv?bv.getTime():0;}return vDir==='asc'?(av>bv?1:-1):(av<bv?1:-1);});
+  $('venue-body').innerHTML=arr.map(v=>{
+    const open=vExp===v.venue;
+    const evts=v.events.slice().sort((a,b)=>b.date-a.date);
+    return `<tr style="cursor:pointer" onclick="toggleVenue('${esc(v.venue)}')">
+      <td><span style="margin-right:8px;font-size:9px;color:var(--muted)">${open?'▼':'▶'}</span>${esc(v.venue)}</td>
+      <td style="color:var(--gold);font-family:'Cormorant Garamond',serif;font-size:16px">${fmt(v.revenue)}</td>
+      <td>${v.count}</td><td class="mono" style="font-size:10px">${fmtD(v.lastDate)}</td></tr>
+    ${open?`<tr><td colspan="4" style="padding:0"><div style="background:var(--s2);padding:14px 20px;border-top:1px solid var(--border)">
+      <table style="width:100%"><thead><tr><td style="font-size:8px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);padding:0 0 8px">Date</td><td style="font-size:8px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);padding:0 0 8px">Client</td><td style="font-size:8px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);text-align:right;padding:0 0 8px">Amount</td></tr></thead><tbody>
+      ${evts.map(e=>`<tr class="venue-sub"><td>${fmtD(e.date)}</td><td>${esc(e.name)}</td><td style="text-align:right;color:var(--gold)">${fmt(e.amount)}</td></tr>`).join('')}
+      </tbody></table></div></td></tr>`:''}`;
+  }).join('');
+}
+window.toggleVenue=v=>{vExp=vExp===v?null:v;renderVenues();};
+
+// ══════════════════════════════════════════════════
+// CLIENT MANAGER
+// ══════════════════════════════════════════════════
+function buildClients(){ filterClients(); }
+
+let clSort='date', clDir='asc';
+
+function filterClients(){
+  const q=($('cl-search')||{}).value?.toLowerCase()||'';
+  const yr=($('cl-year')||{}).value||'';
+  const bl=($('cl-bal')||{}).value||'';
+  const now=new Date();
+  const oneMonthAgo=new Date(now.getFullYear(), now.getMonth()-1, now.getDate());
+
+  const filtered=clients.filter(c=>{
+    const matchQ=!q||(c.Name||'').toLowerCase().includes(q)||(c.Location||'').toLowerCase().includes(q)||(c['Package Choice']||'').toLowerCase().includes(q);
+    const d=dt(c['Wedding Date']);
+    const b=amt(c.BalanceDue);
+    // Active = wedding date >= 1 month ago OR has a balance
+    const isActive=(!d||(d>=oneMonthAgo))||b>0;
+    const matchY=!yr||(d&&d.getFullYear().toString()===yr);
+    const matchB=!bl||(bl==='out'&&b>0)||(bl==='paid'&&b<=0);
+    return isActive&&matchQ&&matchY&&matchB;
+  });
+
+  // Sort
+  filtered.sort((a,b)=>{
+    let av,bv;
+    if(clSort==='name'){av=(a.Name||'').toLowerCase();bv=(b.Name||'').toLowerCase();}
+    else if(clSort==='date'){av=dt(a['Wedding Date'])||new Date(0);bv=dt(b['Wedding Date'])||new Date(0);}
+    else if(clSort==='venue'){av=(a.Location||'').toLowerCase();bv=(b.Location||'').toLowerCase();}
+    else if(clSort==='package'){av=(a['Package Choice']||'').toLowerCase();bv=(b['Package Choice']||'').toLowerCase();}
+    else if(clSort==='total'){av=amt(a.TotalAmount);bv=amt(b.TotalAmount);}
+    else if(clSort==='balance'){av=amt(a.BalanceDue);bv=amt(b.BalanceDue);}
+    if(av<bv) return clDir==='asc'?-1:1;
+    if(av>bv) return clDir==='asc'?1:-1;
+    return 0;
+  });
+
+  $('client-count').textContent=`${filtered.length} active client${filtered.length!==1?'s':''} shown`;
+  renderClients(filtered);
+}
+
+window.sortClients=(col)=>{
+  if(clSort===col) clDir=clDir==='asc'?'desc':'asc';
+  else{clSort=col;clDir='asc';}
+  cExp=null;filterClients();
+};
+
+function renderClients(data){
+  $('clients-body').innerHTML=data.map((c,i)=>{
+    const b=amt(c.BalanceDue),t=amt(c.TotalAmount),d=dt(c['Wedding Date']);
+    const key=(c.Name||'')+i;
+    const open=cExp===key;
+    const statusBadge=b<=0?'<span class="badge b-green">Paid</span>':'<span class="badge b-gold">Balance Due</span>';
+    return `
+    <tr>
+      <td><button class="btn btn-ghost" style="padding:3px 6px;font-size:10px" onclick="toggleClient('${esc(key)}')">${open?'▼':'▶'}</button></td>
+      <td style="font-weight:500">${esc(c.Name||'—')}</td>
+      <td class="mono" style="font-size:10px">${fmtD(d)}</td>
+      <td style="color:var(--muted2)">${esc(c.Location||'—')}</td>
+      <td><span class="badge b-blue">${esc(c['Package Choice']||'—')}</span></td>
+      <td class="mono">${fmt(t)}</td>
+      <td class="mono" style="color:${b>0?'var(--red)':'var(--green)'}">${b>0?fmt(b):'—'}</td>
+      <td>${statusBadge}</td>
+    </tr>
+    ${open?`<tr><td colspan="8" style="padding:0"><div style="background:var(--s2);padding:18px 20px;border-top:1px solid var(--border)">
+      <div class="detail-grid">
+        ${[['Total',fmt(t)],['Paid',fmt(t-b)],['Balance',fmt(b)],['Package',c['Package Choice']||'—'],['Add-Ons',c['Add-Ons']||'None'],['Location',c.Location||'—'],['Wedding',fmtD(d)],['Email',c.Email||'—'],['Phone',c.Phone||'—']].map(([l,v])=>`<div class="detail-item"><label>${l}</label><span>${esc(String(v))}</span></div>`).join('')}
+      </div>
+      ${renderEditForm(c, key)}
+      ${renderPayForm(c, key)}
+    </div></td></tr>`:''}`;
+  }).join('') || '<tr><td colspan="8" style="text-align:center;padding:40px;color:var(--muted)">No clients match filters</td></tr>';
+}
+
+window.toggleClient=key=>{cExp=cExp===key?null:key;filterClients();};
+
+// ══════════════════════════════════════════════════
+// EDIT FORM
+// ══════════════════════════════════════════════════
+const ADDONS_LIST = ['Premium Uplighting','Premium Ceremony'];
+
+function renderEditForm(c, key) {
+  const currentAddons = (c['Add-Ons']||'').split(',').map(a=>a.trim()).filter(Boolean);
+  const addonChecks = ADDONS_LIST.map(a=>`
+    <label style="display:flex;align-items:center;gap:10px;padding:9px 12px;background:var(--s2);border-radius:5px;cursor:pointer;font-size:13px;color:var(--text);transition:background 0.1s" onmouseover="this.style.background='var(--s3)'" onmouseout="this.style.background='var(--s2)'">
+      <input type="checkbox" id="ef-ao-${esc(key)}-${a.replace(/\s+/g,'-')}" value="${esc(a)}" ${currentAddons.includes(a)?'checked':''} style="width:15px;height:15px;accent-color:var(--accent);cursor:pointer;flex-shrink:0">
+      <span style="flex:1">${esc(a)}</span>
+      <span style="color:var(--muted2);font-size:11px">$100</span>
+    </label>`).join('');
+  return `
+  <div class="edit-form">
+    <h4>✎ Edit Client Details</h4>
+    <div class="form-grid">
+      <div class="form-group"><label>Package</label>
+        <select id="ef-pkg-${esc(key)}" style="background:var(--s1);border:1px solid var(--border2);border-radius:6px;padding:7px 10px;color:var(--text);font-family:inherit;font-size:13px;outline:none;width:100%">
+          <option ${c['Package Choice']==='The Riggs'?'selected':''}>The Riggs</option>
+          <option ${c['Package Choice']==='The Roman'?'selected':''}>The Roman</option>
+          <option ${c['Package Choice']==='The Noey'?'selected':''}>The Noey</option>
+          <option ${c['Package Choice']==='The 334'?'selected':''}>The 334</option>
+          <option value="other" ${!['The Riggs','The Roman','The Noey','The 334'].includes(c['Package Choice'])?'selected':''}>Other</option>
+        </select>
+      </div>
+      <div class="form-group"><label>Location / Venue</label><input type="text" id="ef-loc-${esc(key)}" value="${esc(c.Location||'')}" placeholder="Venue name" style="background:var(--s1);border:1px solid var(--border2);border-radius:6px;padding:7px 10px;color:var(--text);font-family:inherit;font-size:13px;outline:none;width:100%"></div>
+      <div class="form-group" style="grid-column:1/-1">
+        <label>Add-Ons <span style="color:var(--muted2);font-weight:400;font-size:11px">(select all that apply)</span></label>
+        <div style="display:flex;flex-direction:column;gap:4px;margin-top:6px;background:var(--s1);border:1px solid var(--border2);border-radius:6px;padding:6px;overflow:hidden">${addonChecks}</div>
+      </div>
+      <div class="form-group" style="grid-column:1/-1"><div style="font-size:11px;color:var(--muted2);background:var(--s2);border:1px solid var(--border);border-radius:6px;padding:8px 12px;line-height:1.6">💡 Total, Amount Paid, and Balance Due are calculated automatically by your spreadsheet formulas. Change the package or add-ons above and they'll update on their own.</div></div>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-gold" onclick="saveClientEdit('${esc(key)}','${esc(c.Name||'')}','${esc(c['Wedding Date']||'')}')">Save Changes</button>
+      <button class="btn" onclick="toggleClient('${esc(key)}')">Cancel</button>
+    </div>
+    <div class="save-note">Changes will be written back to your Google Sheet via the Apps Script endpoint.</div>
+  </div>`;
+}
+
+function renderPayForm(c, key) {
+  return `
+  <div class="edit-form" style="margin-top:10px">
+    <h4>$ Log Payment</h4>
+    <p style="font-size:11px;color:var(--muted2);margin-bottom:12px">Quick log for <strong style="color:var(--text)">${esc(c.Name||'this client')}</strong>. For full details (method, username) use the Record Payment section in the sidebar.</p>
+    <div style="display:flex;gap:10px;align-items:flex-end">
+      <div class="form-group" style="flex:1"><label>Amount Paid ($)</label><input type="number" id="pf-amt-${esc(key)}" placeholder="0.00" min="0" step="0.01" style="background:var(--s1);border:1px solid var(--border2);border-radius:6px;padding:7px 10px;color:var(--text);font-family:inherit;font-size:13px;outline:none;width:100%"></div>
+      <button class="btn btn-gold" style="height:35px;padding:0 16px;white-space:nowrap" onclick="logPaymentQuick('${esc(key)}','${esc(c.Name||'')}')">Log Payment</button>
+    </div>
+  </div>`;
+}
+
+window.saveClientEdit = async (key, name, weddingDate) => {
+  const get = id => { const el = document.getElementById(id); return el ? el.value : ''; };
+  // Read checked add-ons
+  const selectedAddons = ADDONS_LIST.filter(a=>{
+    const cb = document.getElementById(`ef-ao-${key}-${a.replace(/\s+/g,'-')}`);
+    return cb && cb.checked;
+  }).join(', ');
+  const payload = {
+    action: 'updateClient',
+    name: name,
+    weddingDate: weddingDate,
+    updates: {
+      package:  get(`ef-pkg-${key}`),
+      addons:   selectedAddons,
+      location: get(`ef-loc-${key}`),
+    }
+  };
+  toast('Saving to Google Sheets...');
+  try {
+    await fetch(DASH_API, { method:'POST', mode:'no-cors', headers:{'Content-Type':'text/plain'}, body:JSON.stringify(payload) });
+    toast('Saved!','success');
+    const c = clients.find(cl=>cl.Name===name&&cl['Wedding Date']===weddingDate);
+    if(c){
+      c['Package Choice']=payload.updates.package;
+      c['Add-Ons']=selectedAddons;
+      c.Location=payload.updates.location;
+    }
+    cExp=null; filterClients();
+  } catch(e) { toast('Error saving. Check connection.','error'); }
+};
+
+window.logPaymentQuick = async (key, clientName) => {
+  const pAmt = document.getElementById(`pf-amt-${key}`)?.value;
+  if(!pAmt||parseFloat(pAmt)<=0){ toast('Enter a valid amount','error'); return; }
+  const payload = { action:'logPayment', name: clientName, amount: pAmt, method:'', username:'Admin Console' };
+  toast('Logging payment...');
+  try {
+    await fetch(PORTAL_API, { method:'POST', mode:'no-cors', headers:{'Content-Type':'text/plain'}, body:JSON.stringify(payload) });
+    toast('Payment logged!','success');
+    const c=clients.find(cl=>cl.Name===clientName);
+    if(c){ c.BalanceDue=Math.max(0,amt(c.BalanceDue)-parseFloat(pAmt)); }
+    cExp=null; filterClients(); buildCashflow();
+  } catch(e){ toast('Error logging payment','error'); }
+};
+
+// Full payment form in Record Payment section
+window.submitRecordPayment = async () => {
+  const name   = $('rp-name')?.value;
+  const pAmt   = $('rp-amt')?.value;
+  const method = $('rp-method')?.value;
+  const user   = $('rp-user')?.value;
+  const msg    = $('rp-msg');
+  if(!name){ toast('Select a client','error'); return; }
+  if(!pAmt||parseFloat(pAmt)<=0){ toast('Enter a valid amount','error'); return; }
+  const payload = { action:'logPayment', name, amount: pAmt, method: method||'', username: user||'Admin Console' };
+  toast('Recording payment...');
+  try {
+    await fetch(PORTAL_API, { method:'POST', mode:'no-cors', headers:{'Content-Type':'text/plain'}, body:JSON.stringify(payload) });
+    toast('Payment recorded!','success');
+    if(msg){ msg.textContent='✓ Payment recorded for '+name; setTimeout(()=>msg.textContent='',4000); }
+    // Clear form
+    $('rp-amt').value=''; $('rp-user').value=''; $('rp-name').value='';
+    // Update local state
+    const c=clients.find(cl=>cl.Name===name);
+    if(c){ c.BalanceDue=Math.max(0,amt(c.BalanceDue)-parseFloat(pAmt)); }
+    buildCashflow();
+  } catch(e){ toast('Error recording payment','error'); }
+};
+
+window.clearPaymentForm = () => {
+  $('rp-name').value=''; $('rp-amt').value='';
+  $('rp-method').value='Venmo'; $('rp-user').value='';
+  const msg=$('rp-msg'); if(msg) msg.textContent='';
+};
+
+// ══════════════════════════════════════════════════
+// ══════════════════════════════════════════════════
+// PORTAL SUBMISSIONS
+// ══════════════════════════════════════════════════
+let subExp=null, subSort='weddingDate', subDir='asc';
+
+function checkSections(d) {
+  return [
+    {name:'Basic Info', done:!!(d.coupleNames||d.venueAddress)},
+    {name:'Reception',  done:!!(d.bridalPartyAnnounced||d.announcedName)},
+    {name:'Dances',     done:!!(d.firstDanceSong||d.firstDanceTiming)},
+    {name:'Songs',      done:!!(d.requestedSongs||d.doNotPlaySongs||d.mustPlaySongs)},
+    {name:'Ceremony',   done:!!(d.providingCeremonySound&&d.providingCeremonySound!=='no')},
+    {name:'Additional', done:!!(d.danceFloorLighting||d.receptionNotes)},
+  ];
+}
+
+function getSubEmail(s) {
+  const match = clients.find(c=>c.Name&&s.clientName&&c.Name.toLowerCase()===s.clientName.toLowerCase());
+  return match?.Email || s.data?.email || '—';
+}
+
+function hasSubData(s) {
+  return s.submitted || (s.data && Object.keys(s.data).filter(k=>s.data[k]&&k!=='accessCode'&&k!=='lastUpdated').length > 1);
+}
+
+function renderSubDetails(d){
+  const fields=[
+    ['Couple Names',d.coupleNames],['Married Name',d.marriedName],['Venue',d.venueAddress],
+    ['Ceremony Time',d.ceremonyStartTime],['Reception Start',d.receptionStartTime],['Reception End',d.receptionEndTime],
+    ['Guest Count',d.guestCount],['Photographer',d.photographer],['Caterer',d.caterer],
+    ['First Dance',d.firstDanceSong],['Father/Daughter',d.fatherDaughterSong],['Mother/Son',d.motherSonSong],
+    ['Cake Song',d.cakeSong],['Bouquet Song',d.bouquetSong],['Exit Song',d.exitSong],['Last Dance',d.lastDanceSong],
+    ['Must Play',d.mustPlaySongs],['Do Not Play',d.doNotPlaySongs],
+    ['Spotify',d.spotifyPlaylists],['Apple Music',d.appleMusicPlaylists],['Cocktail Playlist',d.cocktailHourPlaylist],
+    ['Uplighting',d.uplighting],['Dance Floor Lighting',d.danceFloorLighting],
+    ['Ceremony Sound',d.providingCeremonySound],['Recessional Song',d.recessionalSong],
+    ['Ceremony Notes',d.ceremonyNotes],['Reception Notes',d.receptionNotes],
+  ].filter(([,v])=>v&&String(v).trim());
+  if(!fields.length) return '<p style="font-size:12px;color:var(--muted2)">No form data filled in yet.</p>';
+  return `<div class="detail-grid">${fields.map(([l,v])=>`<div class="detail-item"><label>${esc(l)}</label><span>${esc(String(v))}</span></div>`).join('')}</div>`;
+}
+
+window.toggleSub = code => { subExp = subExp===code ? null : code; filterSubs(); };
+
+window.sortSubs = (col) => {
+  if(subSort===col) subDir=subDir==='asc'?'desc':'asc';
+  else { subSort=col; subDir='asc'; }
+  filterSubs();
+};
+
+function renderSubs(subs) {
+  const tbody = $('sub-list');
+  if(!subs.length) {
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:40px;color:var(--muted)">No clients found.</td></tr>';
+    return;
+  }
+  const sorted = subs.slice().sort((a,b)=>{
+    let av, bv;
+    if(subSort==='clientName')   { av=(a.clientName||'').toLowerCase(); bv=(b.clientName||'').toLowerCase(); }
+    else if(subSort==='accessCode') { av=(a.accessCode||'').toLowerCase(); bv=(b.accessCode||'').toLowerCase(); }
+    else if(subSort==='email')   { av=getSubEmail(a).toLowerCase(); bv=getSubEmail(b).toLowerCase(); }
+    else if(subSort==='weddingDate') { av=dt(a.weddingDate)||new Date(0); bv=dt(b.weddingDate)||new Date(0); }
+    else if(subSort==='status')  { av=hasSubData(a)?1:0; bv=hasSubData(b)?1:0; }
+    else if(subSort==='lastUpdated') { av=a.lastUpdated?new Date(a.lastUpdated):new Date(0); bv=b.lastUpdated?new Date(b.lastUpdated):new Date(0); }
+    if(av<bv) return subDir==='asc'?-1:1;
+    if(av>bv) return subDir==='asc'?1:-1;
+    return 0;
+  });
+  tbody.innerHTML = sorted.map(s => {
+    const has   = hasSubData(s);
+    const d     = dt(s.weddingDate);
+    const email = getSubEmail(s);
+    const open  = subExp === s.accessCode;
+    const lu    = s.lastUpdated ? new Date(s.lastUpdated).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '—';
+    const sections = has ? checkSections(s.data||{}) : [];
+    const pills = sections.map(sc=>`<span class="badge ${sc.done?'b-green':'b-gray'}" style="font-size:10px">${sc.done?'✓':'–'} ${sc.name}</span>`).join('');
+    return `
+    <tr style="cursor:pointer" onclick="toggleSub('${esc(s.accessCode)}')">
+      <td style="color:var(--muted2);font-size:11px;width:32px">${open?'▼':'▶'}</td>
+      <td style="font-weight:600">${esc(s.clientName||'—')}</td>
+      <td class="mono" style="font-size:11px;color:var(--muted2)">${esc(s.accessCode||'—')}</td>
+      <td style="color:var(--muted2);font-size:12px">${esc(email)}</td>
+      <td class="mono" style="font-size:11px">${fmtD(d)}</td>
+      <td>${has?'<span class="badge b-green">Has Data</span>':'<span class="badge b-gray">Not Started</span>'}</td>
+      <td style="color:var(--muted2);font-size:11px">${lu}</td>
+      <td onclick="event.stopPropagation()">${has?`<button class="btn btn-gold" style="padding:3px 10px;font-size:10px" onclick="viewSubTXT('${esc(s.accessCode)}')">TXT</button>`:''}</td>
+    </tr>
+    ${open?`<tr><td colspan="8" style="padding:0"><div style="background:var(--s2);padding:16px 20px 20px;border-top:1px solid var(--border)">
+      ${has?`<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px">${pills}</div>${renderSubDetails(s.data||{})}`
+           :`<p style="font-size:12px;color:var(--muted2)">Client hasn't filled out the portal yet. Their access code is <strong style="color:var(--text)">${esc(s.accessCode)}</strong>.</p>`}
+    </div></td></tr>`:''}`;
+  }).join('');
+}
+
+function filterSubs(){
+  const q=($('sub-search')||{}).value?.toLowerCase()||'';
+  const f=($('sub-filter')||{}).value||'';
+  const filtered=subsAll.filter(s=>{
+    const email=getSubEmail(s).toLowerCase();
+    const has=hasSubData(s);
+    const matchQ=!q||(s.clientName||'').toLowerCase().includes(q)||(s.accessCode||'').toLowerCase().includes(q)||email.includes(q);
+    const matchF=!f||(f==='submitted'&&has)||(f==='pending'&&!has);
+    return matchQ&&matchF;
+  });
+  renderSubs(filtered);
+}
+
+
+window.viewSubTXT = async (accessCode) => {
+  toast('Generating TXT...');
+  try {
+    const r = await fetch(`${PORTAL_API}?action=exportTXT&accessCode=${encodeURIComponent(accessCode)}`);
+    const txt = await r.text();
+    const w = window.open('','_blank');
+    w.document.write(`<pre style="font-family:monospace;padding:20px;background:#111;color:#ddd;font-size:13px;line-height:1.7">${esc(txt)}</pre>`);
+    w.document.title=accessCode+'.txt';
+  } catch(e){ toast('Error loading TXT','error'); }
+};
+
+window.exportAllTXT = () => {
+  const submitted = subsAll.filter(s=>s.submitted);
+  if(!submitted.length){ toast('No submissions to export','error'); return; }
+  submitted.forEach(s => { setTimeout(()=>viewSubTXT(s.accessCode), 300); });
+};
+
+// ══════════════════════════════════════════════════
+// INVOICE GENERATOR
+// ══════════════════════════════════════════════════
+function populateInvoiceSelect(){
+  const sel=$('inv-client');
+  if(!sel) return;
+  const cur=sel.value;
+  sel.innerHTML='<option value="">— choose client —</option>'+
+    clients.map((c,i)=>`<option value="${i}" ${cur==i?'selected':''}>${esc(c.Name||'Unknown')} — ${fmtD(dt(c['Wedding Date']))}</option>`).join('');
+  if(cur) previewInvoice();
+}
+
+window.previewInvoice = () => {
+  const idx=$('inv-client')?.value;
+  if(idx===''||idx===undefined||idx===null){ $('invoice-preview').style.display='none'; return; }
+  const c=clients[parseInt(idx)];
+  if(!c) return;
+  const note=$('inv-note')?.value||'';
+  $('invoice-preview').style.display='block';
+  $('invoice-preview').innerHTML=buildInvoiceHTML(c,note);
+};
+
+function buildInvoiceHTML(c, note='') {
+  const total=amt(c.TotalAmount), paid=amt(c.AmountPaid)||total-amt(c.BalanceDue), bal=amt(c.BalanceDue);
+  const invNum='INV-'+Math.random().toString(36).substr(2,6).toUpperCase();
+  const today=new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
+  const wDate=fmtD(dt(c['Wedding Date']));
+
+  // Build line items
+  const pkg = c['Package Choice']||'DJ Services';
+  const addons = (c['Add-Ons']||'').split(/,|;/).map(a=>a.trim()).filter(Boolean);
+
+  // Package base prices (approximate — you can adjust)
+  const pkgPrices={'The Riggs':1500,'The Roman':1900,'The Noey':2400,'The 334':1800};
+  const pkgBase=pkgPrices[pkg]||total;
+  const addonTotal=total-pkgBase>0?total-pkgBase:0;
+
+  const items=[[pkg,'Wedding DJ Package',fmt(pkgBase)]];
+  if(addons.length&&addonTotal>0) addons.forEach(a=>items.push([a,'Add-On Service',fmt(addonTotal/addons.length)]));
+
+  const payHistory=payments.filter(p=>{
+    const n=(p.Client||p.Name||'').toLowerCase();
+    return n&&(c.Name||'').toLowerCase().includes(n.split(' ')[0]);
+  });
+
+  return `<div class="inv-doc" id="inv-printable">
+    <div class="inv-header">
+      <div class="inv-from">
+        <h2>DJ Cole Maddox</h2>
+        <p>Professional Wedding DJ<br>Mobile, Alabama<br>djcolemaddox@gmail.com<br>djcolemaddox.com</p>
+      </div>
+      <div class="inv-meta">
+        <div class="inv-num">INVOICE</div>
+        <p>${invNum}<br>${today}</p>
+      </div>
+    </div>
+    <div class="inv-to">
+      <h4>Bill To</h4>
+      <p>${esc(c.Name||'—')}</p>
+      <p class="sub">${esc(c.Email||'')}${c.Phone?'  ·  '+esc(c.Phone):''}</p>
+      <p class="sub" style="margin-top:4px">Wedding Date: ${wDate}${c.Location?' · '+esc(c.Location):''}</p>
+    </div>
+    <table class="inv-table">
+      <thead><tr><th>Description</th><th>Details</th><th>Amount</th></tr></thead>
+      <tbody>
+        ${items.map(([d,det,a])=>`<tr><td>${esc(d)}</td><td style="color:#666">${esc(det)}</td><td>${a}</td></tr>`).join('')}
+      </tbody>
+    </table>
+    <div class="inv-totals">
+      <div class="inv-total-row total"><span>Total</span><span>${fmt(total)}</span></div>
+      ${payHistory.length?payHistory.map(p=>`<div class="inv-total-row paid"><span>Payment (${fmtD(dt(p['Date Paid']))})</span><span>-${fmt(amt(p['Amount Paid']))}</span></div>`).join(''):paid>0?`<div class="inv-total-row paid"><span>Deposit Paid</span><span>-${fmt(paid)}</span></div>`:''}
+      ${bal>0?`<div class="inv-total-row due"><span>Balance Due</span><span>${fmt(bal)}</span></div>`:
+               `<div class="inv-total-row" style="color:var(--green);font-weight:600"><span>Paid in Full</span><span>✓</span></div>`}
+    </div>
+    ${note?`<div class="inv-pay"><strong>Note:</strong> ${esc(note)}</div>`:''}
+    <div class="inv-pay">Thank you for choosing DJ Cole Maddox for your special day! Please reach out with any questions.</div>
+    <div class="inv-footer">Generated ${today}</div>
+  </div>`;
+}
+
+window.downloadInvoice = () => {
+  const idx=$('inv-client')?.value;
+  if(idx===''||idx===undefined){ toast('Select a client first','error'); return; }
+  const c=clients[parseInt(idx)];
+  if(!c){ toast('Client not found','error'); return; }
+  const note=$('inv-note')?.value||'';
+  const html=buildInvoiceHTML(c,note);
+  const name=(c.Name||'client').replace(/\s+/g,'-').toLowerCase();
+  const date=dt(c['Wedding Date']);
+  const ds=date?`-${date.getFullYear()}`:'';
+  const fullHtml=`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Invoice - ${esc(c.Name)}</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;600&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}body{font-family:'JetBrains Mono',monospace;background:#f5f5f5;padding:30px}
+    .inv-doc{background:#fff;border-radius:8px;padding:40px;max-width:700px;margin:0 auto;font-size:12px}
+    .inv-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:32px;padding-bottom:20px;border-bottom:2px solid #111}
+    .inv-from h2{font-family:'Inter',sans-serif;font-size:22px;font-weight:700;margin-bottom:4px;letter-spacing:-0.5px}
+    .inv-from p{font-size:11px;color:#555;line-height:1.6}.inv-meta{text-align:right}
+    .inv-num{font-size:18px;font-weight:600;color:#111;margin-bottom:4px}.inv-meta p{font-size:11px;color:#555}
+    .inv-to{margin-bottom:24px}.inv-to h4{font-size:9px;letter-spacing:2px;text-transform:uppercase;color:#888;margin-bottom:6px}
+    .inv-to p{font-size:12px;color:#111;font-weight:500}.inv-to .sub{font-size:10px;color:#555;font-weight:normal}
+    table{width:100%;border-collapse:collapse;margin-bottom:20px}
+    th{text-align:left;font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:#888;padding:8px 0;border-bottom:1px solid #ddd}
+    td{padding:10px 0;border-bottom:1px solid #f0f0f0;font-size:11px;color:#333}td:last-child,th:last-child{text-align:right}
+    .inv-totals{margin-left:auto;width:240px}.inv-total-row{display:flex;justify-content:space-between;padding:5px 0;font-size:11px;color:#555}
+    .inv-total-row.total{border-top:1px solid #111;margin-top:4px;padding-top:10px;font-size:13px;color:#111;font-weight:600}
+    .paid-row{color:#4a9e6e}.due-row{color:#c00;font-size:14px;font-weight:700}
+    .inv-pay{margin-top:20px;padding-top:14px;border-top:1px solid #eee;font-size:10px;color:#555;line-height:1.7}
+    .inv-footer{margin-top:14px;font-size:9px;color:#aaa;text-align:center}
+    @media print{body{background:#fff;padding:0}.inv-doc{border-radius:0;box-shadow:none}}
+  </style></head><body>${html}<script>window.onload=()=>window.print()<\/script></body></html>`;
+
+  const blob=new Blob([fullHtml],{type:'text/html'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url; a.download=`invoice-${name}${ds}.html`; a.click();
+  URL.revokeObjectURL(url);
+  toast('Invoice downloaded!','success');
+};
+
+// ══════════════════════════════════════════════════
+// CSV EXPORT
+// ══════════════════════════════════════════════════
+function exportCSV(){
+  if(!clients.length){ toast('No data loaded yet','error'); return; }
+  const cols=['Name','Wedding Date','Location','Package Choice','Add-Ons','TotalAmount','AmountPaid','BalanceDue','Email','Phone','Notes'];
+  const rows=[cols.join(','),...clients.map(c=>cols.map(k=>{const v=(c[k]||'').toString().replace(/"/g,'""');return v.includes(',')?'"'+v+'"':v;}).join(','))];
+  const blob=new Blob([rows.join('\n')],{type:'text/csv'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a'); a.href=url; a.download='djcole-clients-'+new Date().toISOString().slice(0,10)+'.csv'; a.click();
+  URL.revokeObjectURL(url);
+  toast('CSV exported!','success');
+}
+
+// ══════════════════════════════════════════════════
+// BOOT
+// ══════════════════════════════════════════════════
+loadAll();
+
+// ══════════════════════════════════════════════════
+// RECORD PAYMENT DROPDOWN
+// ══════════════════════════════════════════════════
+function populatePaymentDropdown() {
+  const sel = $('rp-name');
+  if(!sel) return;
+  if(clients.length) {
+    const sorted = clients.map(c=>c.Name||'').filter(Boolean).sort((a,b)=>a.localeCompare(b));
+    sel.innerHTML = '<option value="">— select client —</option>' +
+      sorted.map(n=>`<option value="${esc(n)}">${esc(n)}</option>`).join('');
+  } else {
+    // Clients not loaded yet — fetch from portal API directly
+    sel.innerHTML = '<option value="">Loading clients...</option>';
+    fetch(PORTAL_API + '?action=getClientNames')
+      .then(r=>r.json())
+      .then(data=>{
+        if(data.success && data.names && data.names.length) {
+          sel.innerHTML = '<option value="">— select client —</option>' +
+            data.names.map(n=>`<option value="${esc(n)}">${esc(n)}</option>`).join('');
+        } else {
+          sel.innerHTML = '<option value="">— no clients found —</option>';
+        }
+      })
+      .catch(()=>{ sel.innerHTML = '<option value="">— error loading clients —</option>'; });
+  }
+}
+</script>
+</body>
+</html>
