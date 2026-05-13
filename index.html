@@ -276,14 +276,96 @@ table.tbl tr:last-child td{border-bottom:none}
 ::-webkit-scrollbar-track{background:transparent}
 ::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
 
+/* ── BOTTOM NAV (mobile) ── */
+#bottom-nav{display:none}
+#more-menu{display:none}
+
 /* ── RESPONSIVE ── */
-@media(max-width:860px){
-  #sidebar{width:54px;min-width:54px}
-  .sb-logo .tagline,.sb-item span,.sb-section,.sb-foot{display:none}
-  .sb-item{justify-content:center;padding:10px}
+@media(max-width:768px){
+  /* Hide sidebar entirely on mobile */
+  #sidebar{display:none}
+  #main{margin-left:0}
+  html,body{overflow:auto;height:auto}
+
+  /* Top bar tighter */
+  .topbar{padding:0 14px;height:46px}
+  .tb-title{font-size:14px}
+  .btn{padding:5px 10px;font-size:11px}
+
+  /* Content padding */
+  #content{padding:14px;padding-bottom:80px}
+
+  /* Metrics stack to 2 col */
+  .metrics{grid-template-columns:1fr 1fr;gap:10px}
+  .metric{padding:14px}
+  .m-val{font-size:20px}
+
+  /* Charts stack */
   .charts-2{grid-template-columns:1fr}
-  .pmt-row{grid-template-columns:1fr 1fr}
+
+  /* Payment rows stack */
+  .pmt-row{grid-template-columns:1fr;gap:6px}
+  .pmt-amount{text-align:left}
+
+  /* Tables scroll horizontally */
+  .tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  table.tbl{min-width:500px}
+
+  /* Form grids go single col */
+  .form-grid{grid-template-columns:1fr !important}
   .inv-select-row{grid-template-columns:1fr}
+
+  /* Invoice totals full width */
+  .inv-totals{width:100%}
+
+  /* Section header */
+  .ph h2{font-size:18px}
+
+  /* Cards */
+  .card-full,.card-head,.card-body{padding:14px}
+
+  /* Month chips 2-col */
+  .month-grid{grid-template-columns:1fr 1fr}
+
+  /* Bottom nav */
+  #bottom-nav{
+    display:flex;position:fixed;bottom:0;left:0;right:0;
+    background:var(--s1);border-top:1px solid var(--border2);
+    z-index:200;padding:0;height:62px;
+    justify-content:space-around;align-items:stretch;
+  }
+  .bn-item{
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    gap:3px;flex:1;cursor:pointer;color:var(--muted2);
+    font-size:9px;font-weight:600;letter-spacing:0.3px;
+    text-transform:uppercase;padding:6px 2px;
+    border-top:2px solid transparent;transition:all 0.15s;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .bn-item.active{color:var(--accent);border-top-color:var(--accent)}
+  .bn-item:active{background:var(--s2)}
+  .bn-icon{font-size:18px;line-height:1}
+
+  /* More menu overlay */
+  #more-menu{
+    display:none;position:fixed;bottom:62px;left:0;right:0;
+    background:var(--s1);border-top:1px solid var(--border2);
+    z-index:199;padding:8px 0;
+  }
+  #more-menu.open{display:block !important}
+  .mm-item{
+    display:flex;align-items:center;gap:12px;padding:13px 20px;
+    cursor:pointer;color:var(--text);font-size:14px;font-weight:500;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .mm-item:active{background:var(--s2)}
+  .mm-item.active{color:var(--accent)}
+  .mm-icon{font-size:18px;width:24px;text-align:center}
+}
+
+@media(min-width:769px){
+  .charts-2{grid-template-columns:1fr 1fr}
+  .pmt-row{grid-template-columns:2fr 1.5fr 1.5fr 1fr}
 }
 </style>
 </head>
@@ -312,6 +394,33 @@ table.tbl tr:last-child td{border-bottom:none}
     <div id="sync-status"><div class="dot" id="dot"></div><span id="sync-txt">loading</span></div>
   </div>
 </aside>
+
+<!-- BOTTOM NAV (mobile only) -->
+<nav id="bottom-nav">
+  <div class="bn-item active" id="bn-dashboard" onclick="navMobile('dashboard',this)">
+    <span class="bn-icon">▦</span><span>Dash</span>
+  </div>
+  <div class="bn-item" id="bn-clients" onclick="navMobile('clients',this)">
+    <span class="bn-icon">◻</span><span>Clients</span>
+  </div>
+  <div class="bn-item" id="bn-payment" onclick="navMobile('payment',this)">
+    <span class="bn-icon">$</span><span>Payment</span>
+  </div>
+  <div class="bn-item" id="bn-submissions" onclick="navMobile('submissions',this)">
+    <span class="bn-icon">◈</span><span>Portal</span>
+  </div>
+  <div class="bn-item" id="bn-more" onclick="toggleMoreMenu(this)">
+    <span class="bn-icon">⋯</span><span>More</span>
+  </div>
+</nav>
+
+<!-- MORE MENU (mobile) -->
+<div id="more-menu">
+  <div class="mm-item" onclick="navMobile('cashflow');closeMoreMenu()"><span class="mm-icon">◈</span>Cash Flow</div>
+  <div class="mm-item" onclick="navMobile('venues');closeMoreMenu()"><span class="mm-icon">◎</span>Venues</div>
+  <div class="mm-item" onclick="navMobile('invoice');closeMoreMenu()"><span class="mm-icon">▤</span>Invoice Generator</div>
+  <div class="mm-item" onclick="navMobile('booking');closeMoreMenu()"><span class="mm-icon">◇</span>Booking Info</div>
+</div>
 
 <!-- MAIN -->
 <div id="main">
@@ -472,23 +581,20 @@ table.tbl tr:last-child td{border-bottom:none}
 
     <!-- ══ BOOKING INFO ══ -->
     <div class="panel" id="p-booking">
-      <div class="ph"><h2>Booking Info</h2><p>Client-facing pricing packet</p></div>
-      <div class="booking-wrap" style="background:radial-gradient(#b6b6b6 0%,#152f3f 80%);padding:16px">
-        <div style="max-width:800px;margin:0 auto;background:#fff;border-radius:6px;overflow:hidden">
-          <div style="background:#b6b6b6;padding:18px;text-align:center">
-            <h3 style="color:#152f3f;font-family:'Cormorant Garamond',serif;font-size:1.3em;margin-bottom:4px">Wedding Information Packet</h3>
-            <p style="color:#152f3f;font-size:0.85em">Swipe to view each page</p>
+      <div class="ph"><h2>Booking Info</h2><p>Copy your booking link to send to potential clients</p></div>
+      <div class="card" style="max-width:480px">
+        <div class="card-full">
+          <div style="font-size:12px;color:var(--muted2);margin-bottom:8px;font-weight:500">Booking Link</div>
+          <div style="display:flex;align-items:center;gap:10px;background:var(--s2);border:1px solid var(--border2);border-radius:6px;padding:10px 14px;margin-bottom:16px">
+            <span style="font-size:12px;color:var(--text);flex:1;word-break:break-all">https://djcolemaddox.github.io/booknow/</span>
           </div>
-          <div style="padding:8px">
-            <div style="position:relative;width:100%;height:0;padding-top:129.4%;overflow:hidden;border-radius:4px">
-              <iframe loading="lazy" style="position:absolute;width:100%;height:100%;top:0;left:0;border:none"
-                src="https://www.canva.com/design/DAF0Jz_pjAM/QCojXZa71P-AjikAeKbYmA/view?embed"
-                allowfullscreen allow="fullscreen"></iframe>
-            </div>
-            <div style="text-align:center;padding:10px;font-size:0.82em;color:#666">
-              <a href="https://www.canva.com/design/DAF0Jz_pjAM/QCojXZa71P-AjikAeKbYmA/view" target="_blank" style="color:#667eea">View on Canva</a>
-              <p style="margin-top:4px;color:#aaa">by Cole Maddox</p>
-            </div>
+          <div style="display:flex;gap:10px">
+            <button class="btn btn-gold" style="flex:1;justify-content:center;padding:10px" onclick="copyBookingLink()">
+              <span id="copy-icon">⎘</span> <span id="copy-label">Copy Link</span>
+            </button>
+            <a href="https://djcolemaddox.github.io/booknow/" target="_blank" class="btn" style="flex:1;justify-content:center;padding:10px;text-decoration:none">
+              ↗ Open Link
+            </a>
           </div>
         </div>
       </div>
@@ -1224,6 +1330,44 @@ function exportCSV(){
   toast('CSV exported!','success');
 }
 
+
+// ══════════════════════════════════════════════════
+// MOBILE NAV
+// ══════════════════════════════════════════════════
+function navMobile(id, el) {
+  const fakeEl = document.querySelector(".sb-item[onclick*=\"'"+id+"'\"]") || document.createElement('div');
+  nav(id, fakeEl);
+  document.querySelectorAll('.bn-item').forEach(b=>b.classList.remove('active'));
+  const bnItem = document.getElementById('bn-'+id);
+  if(bnItem) bnItem.classList.add('active');
+  else { const m=document.getElementById('bn-more'); if(m) m.classList.add('active'); }
+  window.scrollTo(0,0);
+  const c=document.getElementById('content'); if(c) c.scrollTop=0;
+}
+
+function toggleMoreMenu(el) {
+  const menu = document.getElementById('more-menu');
+  const isOpen = menu.classList.contains('open');
+  menu.classList.toggle('open');
+  document.querySelectorAll('.bn-item').forEach(b=>b.classList.remove('active'));
+  if(!isOpen) el.classList.add('active');
+}
+
+function closeMoreMenu() {
+  const m=document.getElementById('more-menu');
+  if(m) m.classList.remove('open');
+  document.querySelectorAll('.bn-item').forEach(b=>b.classList.remove('active'));
+  const bn=document.getElementById('bn-'+Object.keys(titles).find(k=>document.getElementById('p-'+k)?.classList.contains('active')));
+  if(bn) bn.classList.add('active');
+}
+
+document.addEventListener('click', function(e) {
+  const menu=document.getElementById('more-menu');
+  const moreBtn=document.getElementById('bn-more');
+  if(menu&&menu.classList.contains('open')&&!menu.contains(e.target)&&moreBtn&&!moreBtn.contains(e.target)) closeMoreMenu();
+});
+
+
 // ══════════════════════════════════════════════════
 // BOOT
 // ══════════════════════════════════════════════════
@@ -1255,6 +1399,30 @@ function populatePaymentDropdown() {
       .catch(()=>{ sel.innerHTML = '<option value="">— error loading clients —</option>'; });
   }
 }
+
+window.copyBookingLink = function() {
+  navigator.clipboard.writeText('https://djcolemaddox.github.io/booknow/')
+    .then(() => {
+      const label = document.getElementById('copy-label');
+      const icon  = document.getElementById('copy-icon');
+      if(label) label.textContent = 'Copied!';
+      if(icon)  icon.textContent  = '✓';
+      toast('Booking link copied!', 'success');
+      setTimeout(() => {
+        if(label) label.textContent = 'Copy Link';
+        if(icon)  icon.textContent  = '⎘';
+      }, 2500);
+    })
+    .catch(() => {
+      // Fallback for older mobile browsers
+      const el = document.createElement('textarea');
+      el.value = 'https://djcolemaddox.github.io/booknow/';
+      document.body.appendChild(el);
+      el.select(); document.execCommand('copy');
+      document.body.removeChild(el);
+      toast('Booking link copied!', 'success');
+    });
+};
 </script>
 </body>
 </html>
