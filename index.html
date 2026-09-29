@@ -1179,21 +1179,9 @@ function filterSubs(){
 }
 
 
-window.viewSubTXT = async (accessCode) => {
+window.viewSubTXT = (accessCode) => {
   toast('Generating TXT...');
-  try {
-    const r = await fetch(`${PORTAL_API}?action=exportTXT&accessCode=${encodeURIComponent(accessCode)}`);
-    const txt = await r.text();
-    const w = window.open('','_blank');
-    w.document.write(`<pre style="font-family:monospace;padding:20px;background:#111;color:#ddd;font-size:13px;line-height:1.7">${esc(txt)}</pre>`);
-    w.document.title=accessCode+'.txt';
-  } catch(e){ toast('Error loading TXT','error'); }
-};
-
-window.exportAllTXT = () => {
-  const submitted = subsAll.filter(s=>s.submitted);
-  if(!submitted.length){ toast('No submissions to export','error'); return; }
-  submitted.forEach(s => { setTimeout(()=>viewSubTXT(s.accessCode), 300); });
+  window.open(`${PORTAL_API}?action=exportTXT&accessCode=${encodeURIComponent(accessCode)}`, '_blank');
 };
 
 // ══════════════════════════════════════════════════
