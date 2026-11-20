@@ -361,6 +361,15 @@ table.tbl tr:last-child td{border-bottom:none}
   .mm-item:active{background:var(--s2)}
   .mm-item.active{color:var(--accent)}
   .mm-icon{font-size:18px;width:24px;text-align:center}
+  /* Portal Submissions: fit on phone screens (hide Access Code, Email, Status, Last Updated) */
+  #sub-table{min-width:0}
+  #sub-table th:nth-child(3),#sub-table td:nth-child(3),
+  #sub-table th:nth-child(4),#sub-table td:nth-child(4),
+  #sub-table th:nth-child(6),#sub-table td:nth-child(6),
+  #sub-table th:nth-child(7),#sub-table td:nth-child(7){display:none}
+  #sub-table th,#sub-table td{padding:10px 8px}
+  #sub-table td:nth-child(8){white-space:normal !important;text-align:right;width:1%}
+  #sub-table td:nth-child(8) .btn{margin:2px 0;padding:6px 12px !important;font-size:11px !important}
 }
 
 @media(min-width:769px){
