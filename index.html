@@ -1104,7 +1104,7 @@ function renderSubDetails(d){
     ['First Dance',d.firstDanceSong],['Father/Daughter',d.fatherDaughterSong],['Mother/Son',d.motherSonSong],
     ['Cake Song',d.cakeSong],['Bouquet Song',d.bouquetSong],['Exit Song',d.exitSong],['Last Dance',d.lastDanceSong],
     ['Must Play',d.mustPlaySongs],['Do Not Play',d.doNotPlaySongs],
-    ['Spotify',d.spotifyPlaylists],['Apple Music',d.appleMusicPlaylists],['Cocktail Playlist',d.cocktailHourPlaylist],
+    ['Playlists',d.playlistLinks],['Genres',d.genres],
     ['Uplighting',d.uplighting],['Dance Floor Lighting',d.danceFloorLighting],
     ['Ceremony Sound',d.providingCeremonySound],['Recessional Song',d.recessionalSong],
     ['Ceremony Notes',d.ceremonyNotes],['Reception Notes',d.receptionNotes],
@@ -1156,7 +1156,7 @@ function renderSubs(subs) {
       <td class="mono" style="font-size:11px">${fmtD(d)}</td>
       <td>${has?'<span class="badge b-green">Has Data</span>':'<span class="badge b-gray">Not Started</span>'}</td>
       <td style="color:var(--muted2);font-size:11px">${lu}</td>
-      <td onclick="event.stopPropagation()">${has?`<button class="btn btn-gold" style="padding:3px 10px;font-size:10px" onclick="viewSubTXT('${esc(s.accessCode)}')">TXT</button>`:''}</td>
+      <td onclick="event.stopPropagation()" style="white-space:nowrap">${has?`<button class="btn btn-gold" style="padding:3px 10px;font-size:10px" onclick="copySubNotes('${esc(s.accessCode)}',this)" title="Copy formatted brief — paste into Apple Notes">⎘ Notes</button> <button class="btn" style="padding:3px 10px;font-size:10px" onclick="viewSubTXT('${esc(s.accessCode)}')" title="Download .txt file">TXT</button>`:''}</td>
     </tr>
     ${open?`<tr><td colspan="8" style="padding:0"><div style="background:var(--s2);padding:16px 20px 20px;border-top:1px solid var(--border)">
       ${has?`<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px">${pills}</div>${renderSubDetails(s.data||{})}`
@@ -1184,6 +1184,130 @@ window.viewSubTXT = (accessCode) => {
   window.open(`${PORTAL_API}?action=exportTXT&accessCode=${encodeURIComponent(accessCode)}`, '_blank');
 };
 
+
+// ══════════════════════════════════════════════════
+// COPY FOR APPLE NOTES (rich text)
+// Takes the same brief generateWeddingTXT builds and turns it into
+// HTML: couple name → title, section lines → headings,
+// "* Label: value" → bullets with bold labels, indentation → nested bullets.
+// ══════════════════════════════════════════════════
+function txtToNotesHTML(txt) {
+  const fmtText = s => {
+    let h = esc(s).replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1">$1</a>');
+    // Bold a leading "Label:" (but not the "https:" in a link)
+    const m = h.match(/^([^:<]{1,40}):(?!\/\/)(.*)$/);
+    return m ? `<b>${m[1]}:</b>${m[2]}` : h;
+  };
+
+  let html = '', depth = -1, liOpen = [], lastLevel = 0, gap = false, titled = false;
+  const closeLists = () => {
+    while (depth >= 0) { if (liOpen[depth]) html += '</li>'; html += '</ul>'; depth--; }
+  };
+  const addItem = (lv, text) => {
+    if (gap && depth < 0 && html.endsWith('</ul>')) html += '<br>';
+    gap = false;
+    if (lv > depth) {
+      for (let d = depth + 1; d <= lv; d++) {
+        html += '<ul>'; liOpen[d] = false;
+        if (d < lv) { html += '<li>'; liOpen[d] = true; }
+      }
+      depth = lv;
+    } else {
+      while (depth > lv) { if (liOpen[depth]) html += '</li>'; html += '</ul>'; depth--; }
+    }
+    if (liOpen[lv]) html += '</li>';
+    // Top-level group lines with no "Label:" (e.g. "FD / DD / MS") get bolded too
+    html += '<li>' + (lv === 0 && !text.includes(':') ? `<b>${esc(text)}</b>` : fmtText(text));
+    liOpen[lv] = true;
+    lastLevel = lv;
+  };
+
+  for (const raw of txt.replace(/\r/g, '').split('\n')) {
+    if (!raw.trim()) { closeLists(); gap = true; continue; }
+
+    const bullet = raw.match(/^( *)\*\s?(.*)$/);
+    if (bullet) { addItem(Math.round(bullet[1].length / 3), bullet[2].trim()); continue; }
+
+    if (/^\t/.test(raw)) {                      // tab lines = list items under the previous bullet
+      addItem(depth >= 0 ? lastLevel + 1 : 0, raw.trim());
+      lastLevel--;                               // keep later tab lines at the same level
+      continue;
+    }
+
+    closeLists(); gap = false;
+    const line = raw.trim().replace(/:$/, '');
+    if (!titled) { html += `<h1>${esc(line)}</h1>`; titled = true; }
+    else         { html += `<br><h2>${esc(line)}</h2>`; }
+  }
+  closeLists();
+  return `<meta charset="utf-8"><div style="font-family:-apple-system,Helvetica,sans-serif">${html}</div>`;
+}
+
+window.copySubNotes = (accessCode, btn) => {
+  const label = btn.innerHTML;
+  const done = () => { btn.innerHTML = label; btn.disabled = false; };
+  btn.innerHTML = 'Copying…'; btn.disabled = true;
+  toast('Building brief — can take a bit on first run...');
+
+  const req = fetch(`${PORTAL_API}?action=getTXT&accessCode=${encodeURIComponent(accessCode)}`)
+    .then(r => r.json())
+    .then(d => { if (!d.success) throw new Error(d.message || 'Export failed'); return d.txt; });
+
+  const fallback = () => req
+    .then(t => { done(); openNotesModal(t, accessCode); })
+    .catch(err => { done(); toast('Error: ' + err.message, 'error'); });
+
+  // The copy has to start inside the click (Safari rule), so the
+  // clipboard item is handed promises that fill in when the data arrives.
+  try {
+    if (!window.ClipboardItem || !navigator.clipboard?.write) throw new Error('no rich clipboard');
+    const item = new ClipboardItem({
+      'text/html':  req.then(t => new Blob([txtToNotesHTML(t)], { type: 'text/html' })),
+      'text/plain': req.then(t => new Blob([t], { type: 'text/plain' })),
+    });
+    navigator.clipboard.write([item])
+      .then(() => { done(); toast('Copied! Paste into Apple Notes', 'success'); })
+      .catch(fallback);
+  } catch (e) { fallback(); }
+};
+
+// Backup path: show the formatted brief with its own Copy button
+// (a fresh click always has clipboard permission).
+function openNotesModal(txt, accessCode) {
+  let bg = $('notes-modal');
+  if (!bg) {
+    bg = document.createElement('div');
+    bg.id = 'notes-modal'; bg.className = 'modal-bg';
+    bg.onclick = e => { if (e.target === bg) bg.classList.remove('open'); };
+    document.body.appendChild(bg);
+  }
+  bg.innerHTML = `<div class="modal" style="max-width:600px">
+    <h3>Brief for Notes — ${esc(accessCode)}</h3>
+    <div id="notes-preview" style="background:#fff;color:#111;border-radius:6px;padding:16px 20px;font-size:13px;line-height:1.5;max-height:55vh;overflow-y:auto">${txtToNotesHTML(txt)}</div>
+    <div class="modal-footer">
+      <button class="btn" onclick="$('notes-modal').classList.remove('open')">Close</button>
+      <button class="btn btn-gold" id="notes-copy-btn">⎘ Copy for Notes</button>
+    </div></div>`;
+  bg.classList.add('open');
+  $('notes-copy-btn').onclick = async () => {
+    const html = txtToNotesHTML(txt);
+    try {
+      await navigator.clipboard.write([new ClipboardItem({
+        'text/html':  new Blob([html], { type: 'text/html' }),
+        'text/plain': new Blob([txt],  { type: 'text/plain' }),
+      })]);
+    } catch (e) {
+      // Older browsers: select the rendered preview and copy it
+      const sel = window.getSelection(), range = document.createRange();
+      range.selectNodeContents($('notes-preview'));
+      sel.removeAllRanges(); sel.addRange(range);
+      document.execCommand('copy'); sel.removeAllRanges();
+    }
+    toast('Copied! Paste into Apple Notes', 'success');
+    bg.classList.remove('open');
+  };
+}
+  
 // ══════════════════════════════════════════════════
 // INVOICE GENERATOR
 // ══════════════════════════════════════════════════
